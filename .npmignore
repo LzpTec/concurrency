@@ -8,3 +8,5 @@ test
 stryker.conf.json
 .bettercodehub.yml
 examples/
+*.ts
+!*.d.ts
