@@ -9,85 +9,183 @@ import { EventEmitter } from './event-emitter';
  */
 type Task<A, B> = (item: A) => Promise<B> | B;
 
-export class Batch {
+export class Concurrency {
     /**
-     * Same as Promise.all(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * Same as Promise.all(items.map(item => task(item))), but it limits the concurrent execution to {maxConcurrency}
      *
      * @template A
      * @template B
      * @param {A[]} items Arguments to pass to the task for each call.
-     * @param {number} batchSize
+     * @param {number} maxConcurrency
      * @param {Task.<A, B>} task The task to run for each item.
      * @returns {Promise.<B[]>}
      */
-    static async map<A, B>(items: A[], batchSize: number, task: Task<A, B>): Promise<B[]> {
-        let position = 0;
-        const results = new Array();
-        while (position < items.length) {
-            const itemsForBatch = items.slice(position, position + batchSize);
-            results.push(...await Promise.all(itemsForBatch.map(item => task(item))));
-            position += batchSize;
+    static async map<A, B>(items: A[], maxConcurrency: number, task: Task<A, B>): Promise<B[]> {
+        const results = [];
+
+        let error: any;
+
+        const ev = new EventEmitter();
+        let running = 0;
+
+        for (const item of items) {
+            if (error)
+                throw error;
+
+            results
+                .push(
+                    Promise.resolve(task(item))
+                        .catch(err => {
+                            error = err;
+                            return;
+                        })
+                        .finally(() => {
+                            running--;
+                            ev.emit('free');
+                        })
+                );
+
+            running++;
+
+            while (running >= maxConcurrency)
+                await new Promise((resolve) => ev.once('free', resolve));
         }
-        return results;
+
+        return Promise
+            .all(results)
+            .then(res => {
+                if (error)
+                    throw error;
+
+                const result: any = res;
+                return result;
+            })
+            .finally(() => ev.removeAllListeners());
     }
 
+
     /**
-     * Same as Promise.allSettled(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * Same as Promise.allSettled(items.map(item => task(item))), but it limits the concurrent execution to {maxConcurrency}
      *
      * @template A
      * @template B
      * @param {A[]} items Arguments to pass to the task for each call.
-     * @param {number} batchSize
+     * @param {number} maxConcurrency
      * @param {Task.<A, B>} task The task to run for each item.
      * @returns {Promise.<PromiseSettledResult.<B>[]>}
      */
-    static async mapSettled<A, B>(items: A[], batchSize: number, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        let position = 0;
-        const results = new Array();
-        while (position < items.length) {
-            const itemsForBatch = items.slice(position, position + batchSize);
-            results.push(...await Promise.allSettled(itemsForBatch.map(item => task(item))));
-            position += batchSize;
+    static async mapSettled<A, B>(items: A[], maxConcurrency: number, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+        const results = [];
+
+        const ev = new EventEmitter();
+        let running = 0;
+
+        for (const item of items) {
+            results
+                .push(
+                    Promise.resolve(task(item))
+                        .then(result => ({ error: null, result }))
+                        .catch(error => ({ error, result: null }))
+                        .finally(() => {
+                            running--;
+                            ev.emit('free');
+                        })
+                );
+
+            running++;
+
+            while (running >= maxConcurrency)
+                await new Promise((resolve) => ev.once('free', resolve));
         }
-        return results;
+
+        return await Promise
+            .all(results)
+            .then(res => {
+                const response: Array<any> = res
+                    .map(x => {
+                        if (x.error)
+                            return {
+                                status: "rejected",
+                                reason: x.error
+                            }
+
+                        return {
+                            status: "fulfilled",
+                            value: x.result
+                        }
+                    });
+
+                return response;
+            })
+            .finally(() => ev.removeAllListeners());
     }
 
     /**
-     * Same as Promise.all(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * TODO DESC
      *
      * @template A
      * @param {A[]} items Arguments to pass to the task for each call.
-     * @param {number} batchSize
+     * @param {number} maxConcurrency
      * @param {Task.<A, void>} task The task to run for each item.
-     * @returns {Promise<void>}
+     * @returns {Promise.<void>}
      */
-    static async forEach<A>(items: A[], batchSize: number, task: Task<A, void>): Promise<void> {
-        let position = 0;
-        while (position < items.length) {
-            const itemsForBatch = items.slice(position, position + batchSize);
-            await Promise.all(itemsForBatch.map(item => task(item)));
-            position += batchSize;
+    static async forEach<A>(items: A[], maxConcurrency: number, task: Task<A, void>): Promise<void> {
+        const results = [];
+        let error: any;
+
+        const ev = new EventEmitter();
+        let running = 0;
+
+        for (const item of items) {
+            if (error)
+                throw error;
+
+            results
+                .push(
+                    Promise.resolve(task(item))
+                        .catch(err => {
+                            error = err;
+                            return;
+                        })
+                        .finally(() => {
+                            running--;
+                            ev.emit('free');
+                        })
+                );
+
+            running++;
+
+            while (running >= maxConcurrency)
+                await new Promise((resolve) => ev.once('free', resolve));
         }
+
+        return Promise
+            .all(results)
+            .then(() => {
+                if (error)
+                    throw error;
+
+                return;
+            })
+            .finally(() => ev.removeAllListeners());
     }
 
-    #batchSize: number;
+    #maxConcurrency: number;
     #eventEmitter: EventEmitter = new EventEmitter();
     #currentTaskId: number = Number.MIN_SAFE_INTEGER;
+    #running: number = 0;
     #queue: { taskId: number; task: Function; }[] = [];
     #isProcessing: boolean = false;
 
     /**
      * 
-     * @param {number} batchSize 
+     * @param {number} maxConcurrency 
      */
-    constructor(batchSize: number) {
-        if (typeof batchSize !== 'number' || isNaN(batchSize))
+    constructor(maxConcurrency: number) {
+        if (typeof maxConcurrency !== 'number' || isNaN(maxConcurrency))
             throw new Error('Parameter maxConcurrency invalid!');
 
-        this.#batchSize = batchSize;
+        this.#maxConcurrency = maxConcurrency;
 
         this.#eventEmitter
             .on('newTask', async (item: any) => {
@@ -101,31 +199,36 @@ export class Batch {
 
     async #run() {
         while (this.#queue.length > 0) {
-            const items = this.#queue.splice(0, this.#batchSize);
+            const item = this.#queue.splice(0, 1)[0];
+            this.#running++;
 
-            await Promise.all(items.map(async item => {
-                await item
-                    .task()
-                    .then((res: any) => {
-                        this.#eventEmitter.emit(`complete-${item.taskId}`, {
-                            taskId: item.taskId,
-                            result: res
-                        });
-                    })
-                    .catch((err: any) => {
-                        this.#eventEmitter.emit(`complete-${item.taskId}`, {
-                            taskId: item.taskId,
-                            error: err
-                        });
+            item
+                .task()
+                .then((res: any) => {
+                    this.#eventEmitter.emit(`complete-${item.taskId}`, {
+                        taskId: item.taskId,
+                        result: res
                     });
-            }));
+                })
+                .catch((err: any) => {
+                    this.#eventEmitter.emit(`complete-${item.taskId}`, {
+                        taskId: item.taskId,
+                        error: err
+                    });
+                })
+                .finally(() => {
+                    this.#running--;
+                    this.#eventEmitter.emit('free');
+                });
+
+            while (this.#running >= this.#maxConcurrency)
+                await new Promise((resolve) => this.#eventEmitter.once('free', resolve));
         }
         this.#isProcessing = false;
     }
 
     /**
-     * Same as Promise.all(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * TODO DESC
      *
      * @template A
      * @template B
@@ -174,8 +277,7 @@ export class Batch {
     }
 
     /**
-     * Same as Promise.allSettled(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * TODO DESC
      *
      * @template A
      * @template B
@@ -228,8 +330,7 @@ export class Batch {
     }
 
     /**
-     * Same as Promise.all(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * TODO DESC
      *
      * @template A
      * @param {A[]} items Arguments to pass to the task for each call.
@@ -275,6 +376,9 @@ export class Batch {
                 return;
             });
     }
-}
 
-Object.freeze(Batch);
+    get currentRunning() {
+        return this.#running;
+    }
+}
+Object.freeze(Concurrency);
