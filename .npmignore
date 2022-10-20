@@ -1,0 +1,10 @@
+!dist/
+.travis.yml
+*.log
+npm-debug.log*
+tsconfig.json
+tslint.json
+test
+stryker.conf.json
+.bettercodehub.yml
+examples/

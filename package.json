@@ -1,0 +1,41 @@
+{
+  "name": "@lzptec/concurrency",
+  "version": "0.0.1",
+  "description": "A lightweight async context manager for typescript and javascript",
+  "author": "André Posso <admin@lzptec.com>",
+  "license": "MIT",
+  "keywords": [
+    "Context",
+    "Context-Manager",
+    "Proxy",
+    "typescript",
+    "javascript",
+    "async"
+  ],
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
+  "scripts": {
+    "start": "tsc -w",
+    "build": "pnpm run clean && tsc",
+    "clean": "node -e \"require('fs-extra').emptyDirSync('dist');\"",
+    "dev": "ts-node ./test.ts",
+    "prepublish": "pnpm run build",
+    "tsc": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^16.11.00",
+    "ava": "^4.3.3",
+    "fs-extra": "^10.1.0",
+    "ts-node": "^10.9.1",
+    "tslib": "^2.4.0",
+    "typescript": "^4.8.4"
+  },
+  "ava": {
+    "extensions": [
+      "ts"
+    ],
+    "require": [
+      "ts-node/register"
+    ]
+  }
+}
