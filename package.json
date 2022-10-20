@@ -20,7 +20,8 @@
     "clean": "node -e \"require('fs-extra').emptyDirSync('dist');\"",
     "dev": "ts-node ./test.ts",
     "prepublish": "pnpm run build",
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "test": "echo \"No test specified\""
   },
   "devDependencies": {
     "@types/node": "^16.11.00",
