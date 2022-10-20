@@ -12,3 +12,4 @@ stryker.conf.json
 examples/
 *.ts
 !*.d.ts
+pnpm-lock.yaml
