@@ -381,4 +381,5 @@ export class Concurrency {
         return this.#running;
     }
 }
+
 Object.freeze(Concurrency);
