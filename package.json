@@ -5,12 +5,13 @@
   "author": "André Posso <admin@lzptec.com>",
   "license": "MIT",
   "keywords": [
-    "Context",
-    "Context-Manager",
-    "Proxy",
+    "Concurrency",
+    "Batch",
     "typescript",
     "javascript",
-    "async"
+    "async",
+    "backend",
+    "frontend"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
