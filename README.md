@@ -16,8 +16,6 @@ pnpm i @lzptec/concurrency
 # Usage
 The following examples uses Typescript
 
-<!-- ⚠ Version 0.0.0 will be the first **Stable** Release. -->
-
 ## Batch
 
 Batch has two modes: Global and Instance
@@ -239,3 +237,7 @@ The max concurrency.
 Type: `Task<A, void>`<br>
 
 The task to run for each item.
+
+# Notes
+
+Documentation will be updated over time.
