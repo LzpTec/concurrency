@@ -1,6 +1,6 @@
 {
   "name": "@lzptec/concurrency",
-  "version": "0.0.1-3",
+  "version": "0.0.1-4",
   "description": "A lightweight async context manager for typescript and javascript",
   "author": "André Posso <admin@lzptec.com>",
   "license": "MIT",
