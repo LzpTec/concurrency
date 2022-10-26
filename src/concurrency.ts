@@ -350,7 +350,7 @@ export class Concurrency {
 
             results
                 .push(
-                    new Promise((resolve, reject) => this.#eventEmitter.on('complete', (task: any) => {
+                    new Promise((resolve, reject) => this.#eventEmitter.once(`complete-${taskId}`, (task: any) => {
                         if (task.error) reject(task.error);
                         else resolve(task.result);
                     }))
