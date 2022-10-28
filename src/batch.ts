@@ -1,4 +1,5 @@
 import { EventEmitter } from './event-emitter';
+import { isAsyncIterator, isIterator } from './guards';
 
 /**
  * @template A
@@ -9,6 +10,8 @@ import { EventEmitter } from './event-emitter';
  */
 type Task<A, B> = (item: A) => Promise<B> | B;
 
+const MAX_TASK_ID = Number.MAX_SAFE_INTEGER - 1;
+
 export class Batch {
     /**
      * Same as Promise.all(items.map(item => task(item))), but it waits for
@@ -16,19 +19,63 @@ export class Batch {
      *
      * @template A
      * @template B
-     * @param {A[]} items Arguments to pass to the task for each call.
+     * @param {AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>} items Arguments to pass to the task for each call.
      * @param {number} batchSize
      * @param {Task.<A, B>} task The task to run for each item.
      * @returns {Promise.<B[]>}
      */
-    static async map<A, B>(items: A[], batchSize: number, task: Task<A, B>): Promise<B[]> {
-        let position = 0;
-        const results = new Array();
-        while (position < items.length) {
-            const itemsForBatch = items.slice(position, position + batchSize);
-            results.push(...await Promise.all(itemsForBatch.map(item => task(item))));
-            position += batchSize;
+    static async map<A, B>(items: AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>, batchSize: number, task: Task<A, B>): Promise<B[]> {
+        const isAsync = isAsyncIterator(items);
+        const isSync = isIterator(items);
+        const results: B[] = new Array();
+
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+
+        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        let idx = 0;
+
+
+        let p = [];
+        let done = false;
+
+        do {
+            if (done) break;
+
+            const index = idx;
+            idx++;
+
+            p
+                .push(
+                    new Promise<void>((resolve, reject) =>
+                        Promise
+                            .resolve(iterator.next())
+                            .then(res => {
+                                if (!res.done)
+                                    return res.value;
+
+                                done = true;
+                                resolve();
+                                throw 'done';
+                            })
+                            .then(res => task(res!))
+                            .then(res => { results[index] = res!; resolve(); })
+                            .catch(err => err !== 'done' ? reject(err) : {})
+                    )
+                );
+
+            if (p.length >= batchSize) {
+                await Promise.all(p);
+                p = [];
+            }
+
+        } while (true);
+
+        if (p.length > 0) {
+            await Promise.all(p);
+            p = [];
         }
+
         return results;
     }
 
@@ -75,7 +122,7 @@ export class Batch {
 
     #batchSize: number;
     #eventEmitter: EventEmitter = new EventEmitter();
-    #currentTaskId: number = Number.MIN_SAFE_INTEGER;
+    #currentTaskId: number = 0;
     #queue: { taskId: number; task: Function; }[] = [];
     #isProcessing: boolean = false;
 
@@ -107,13 +154,13 @@ export class Batch {
                 await item
                     .task()
                     .then((res: any) => {
-                        this.#eventEmitter.emit(`complete-${item.taskId}`, {
+                        this.#eventEmitter.emit(item.taskId, {
                             taskId: item.taskId,
                             result: res
                         });
                     })
                     .catch((err: any) => {
-                        this.#eventEmitter.emit(`complete-${item.taskId}`, {
+                        this.#eventEmitter.emit(item.taskId, {
                             taskId: item.taskId,
                             error: err
                         });
@@ -141,11 +188,11 @@ export class Batch {
             if (error)
                 throw error;
 
-            const taskId = this.#currentTaskId++;
+            const taskId = this.#currentTaskId >= (MAX_TASK_ID) ? (this.#currentTaskId = 0) : this.#currentTaskId++;
 
             results
                 .push(
-                    new Promise((resolve, reject) => this.#eventEmitter.once(`complete-${taskId}`, (task: any) => {
+                    new Promise((resolve, reject) => this.#eventEmitter.once(taskId, (task: any) => {
                         if (task.error) reject(task.error);
                         else resolve(task.result);
                     }))
@@ -187,16 +234,16 @@ export class Batch {
         const results = [];
 
         for (const item of items) {
-            const taskId = this.#currentTaskId++;
+            const taskId = this.#currentTaskId >= (MAX_TASK_ID) ? (this.#currentTaskId = 0) : this.#currentTaskId++;
 
             results
                 .push(
-                    new Promise((resolve, reject) => this.#eventEmitter.once(`complete-${taskId}`, (task: any) => {
-                        if (task.error) reject(task.error);
-                        else resolve(task.result);
-                    }))
-                        .then(result => ({ error: null, result }))
-                        .catch(error => ({ error, result: null }))
+                    this.#eventEmitter
+                        .once(taskId)
+                        .then((task: any) => {
+                            if (task.error) return { error: task.error, result: null };
+                            return { error: null, result: task.result };
+                        })
                 );
 
             this.#eventEmitter
@@ -244,12 +291,11 @@ export class Batch {
             if (error)
                 throw error;
 
-            const taskId = this.#currentTaskId++;
-
+            const taskId = this.#currentTaskId >= (MAX_TASK_ID) ? (this.#currentTaskId = 0) : this.#currentTaskId++;
 
             results
                 .push(
-                    new Promise((resolve, reject) => this.#eventEmitter.once(`complete-${taskId}`, (task: any) => {
+                    new Promise((resolve, reject) => this.#eventEmitter.once(taskId, (task: any) => {
                         if (task.error) reject(task.error);
                         else resolve(task.result);
                     }))

@@ -1,4 +1,5 @@
 import { EventEmitter } from './event-emitter';
+import { isAsyncIterator, isIterator } from './guards';
 
 /**
  * @template A
@@ -8,6 +9,7 @@ import { EventEmitter } from './event-emitter';
  * @returns {Promise.<B> | B}
  */
 type Task<A, B> = (item: A) => Promise<B> | B;
+type Input<A> = AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>;
 
 export class Concurrency {
     /**
@@ -15,54 +17,52 @@ export class Concurrency {
      *
      * @template A
      * @template B
-     * @param {A[]} items Arguments to pass to the task for each call.
+     * @param {AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>} items Arguments to pass to the task for each call.
      * @param {number} maxConcurrency
      * @param {Task.<A, B>} task The task to run for each item.
      * @returns {Promise.<B[]>}
      */
-    static async map<A, B>(items: A[], maxConcurrency: number, task: Task<A, B>): Promise<B[]> {
-        const results = [];
+    static async map<A, B>(items: Input<A>, maxConcurrency: number, task: Task<A, B>): Promise<B[]> {
+        return new Promise<B[]>(async (resolve, reject) => {
+            const isAsync = isAsyncIterator(items);
+            const isSync = isIterator(items);
+            const results: B[] = new Array();
 
-        let error: any;
+            if (!isAsync && !isSync)
+                throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        const ev = new EventEmitter();
-        let running = 0;
+            const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+            let idx = 0;
 
-        for (const item of items) {
-            if (error)
-                throw error;
+            const wait = new Array(maxConcurrency);
+            for (let i = 0; i < maxConcurrency; i++)
+                wait[i] = new Promise<void>(
+                    async (resolve, reject) => {
+                        try {
+                            do {
+                                const item = await iterator.next();
+                                if (item.done) break;
 
-            results
-                .push(
-                    Promise.resolve(task(item))
-                        .catch(err => {
-                            error = err;
+                                const index = idx;
+                                idx++;
+
+                                results[index] = await task(await item.value);
+                            } while (true);
+
+                            resolve();
+                        } catch (err) {
+                            reject(err);
                             return;
-                        })
-                        .finally(() => {
-                            running--;
-                            ev.emit('free');
-                        })
+                        }
+                    }
                 );
 
-            running++;
-
-            while (running >= maxConcurrency)
-                await new Promise((resolve) => ev.once('free', resolve));
-        }
-
-        return Promise
-            .all(results)
-            .then(res => {
-                if (error)
-                    throw error;
-
-                const result: any = res;
-                return result;
-            })
-            .finally(() => ev.removeAllListeners());
+            await Promise
+                .all(wait)
+                .then(() => resolve(results))
+                .catch(err => reject(err));
+        });
     }
-
 
     /**
      * Same as Promise.allSettled(items.map(item => task(item))), but it limits the concurrent execution to {maxConcurrency}
@@ -74,54 +74,55 @@ export class Concurrency {
      * @param {Task.<A, B>} task The task to run for each item.
      * @returns {Promise.<PromiseSettledResult.<B>[]>}
      */
-    static async mapSettled<A, B>(items: A[], maxConcurrency: number, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const results = [];
+    static async mapSettled<A, B>(items: Input<A>, maxConcurrency: number, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+        return new Promise<PromiseSettledResult<B>[]>(async (resolve, reject) => {
+            const isAsync = isAsyncIterator(items);
+            const isSync = isIterator(items);
+            const results: PromiseSettledResult<B>[] = new Array();
 
-        const ev = new EventEmitter();
-        let running = 0;
+            if (!isAsync && !isSync)
+                throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        for (const item of items) {
-            results
-                .push(
-                    Promise.resolve(task(item))
-                        .then(result => ({ error: null, result }))
-                        .catch(error => ({ error, result: null }))
-                        .finally(() => {
-                            running--;
-                            ev.emit('free');
-                        })
+            const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+            let idx = 0;
+
+            const wait = new Array(maxConcurrency);
+            for (let i = 0; i < maxConcurrency; i++)
+                wait[i] = new Promise<void>(
+                    async (resolve) => {
+                        do {
+                            const index = idx;
+                            idx++;
+
+                            try {
+                                const item = await iterator.next();
+                                if (item.done) break;
+
+                                results[index] = {
+                                    status: 'fulfilled',
+                                    value: await task(await item.value)
+                                };
+                            } catch (err) {
+                                results[index] = {
+                                    status: 'rejected',
+                                    reason: err
+                                };
+                            }
+                        } while (true);
+
+                        resolve();
+                    }
                 );
 
-            running++;
-
-            while (running >= maxConcurrency)
-                await new Promise((resolve) => ev.once('free', resolve));
-        }
-
-        return await Promise
-            .all(results)
-            .then(res => {
-                const response: Array<any> = res
-                    .map(x => {
-                        if (x.error)
-                            return {
-                                status: "rejected",
-                                reason: x.error
-                            }
-
-                        return {
-                            status: "fulfilled",
-                            value: x.result
-                        }
-                    });
-
-                return response;
-            })
-            .finally(() => ev.removeAllListeners());
+            await Promise
+                .all(wait)
+                .then(() => resolve(results))
+                .catch(err => reject(err));
+        });
     }
 
     /**
-     * TODO DESC
+     * Same as Promise.all(items.map(item => {task(item)})), but it limits the concurrent execution to {maxConcurrency}
      *
      * @template A
      * @param {A[]} items Arguments to pass to the task for each call.
@@ -129,52 +130,43 @@ export class Concurrency {
      * @param {Task.<A, void>} task The task to run for each item.
      * @returns {Promise.<void>}
      */
-    static async forEach<A>(items: A[], maxConcurrency: number, task: Task<A, void>): Promise<void> {
-        const results = [];
-        let error: any;
+    static async forEach<A>(items: Input<A>, maxConcurrency: number, task: Task<A, void>): Promise<void> {
+        const isAsync = isAsyncIterator(items);
+        const isSync = isIterator(items);
 
-        const ev = new EventEmitter();
-        let running = 0;
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        for (const item of items) {
-            if (error)
-                throw error;
+        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
 
-            results
-                .push(
-                    Promise.resolve(task(item))
-                        .catch(err => {
-                            error = err;
-                            return;
-                        })
-                        .finally(() => {
-                            running--;
-                            ev.emit('free');
-                        })
-                );
+        const wait = new Array(maxConcurrency);
+        for (let i = 0; i < maxConcurrency; i++)
+            wait[i] = new Promise<void>(
+                async (resolve, reject) => {
+                    try {
+                        do {
+                            const item = await iterator.next();
+                            if (item.done) break;
 
-            running++;
+                            await task(await item.value);
+                        } while (true);
 
-            while (running >= maxConcurrency)
-                await new Promise((resolve) => ev.once('free', resolve));
-        }
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                        return;
+                    }
+                }
+            );
 
-        return Promise
-            .all(results)
-            .then(() => {
-                if (error)
-                    throw error;
-
-                return;
-            })
-            .finally(() => ev.removeAllListeners());
+        await Promise
+            .all(wait);
     }
 
     #maxConcurrency: number;
     #eventEmitter: EventEmitter = new EventEmitter();
-    #currentTaskId: number = Number.MIN_SAFE_INTEGER;
     #running: number = 0;
-    #queue: { taskId: number; task: Function; }[] = [];
+    #queue: { taskId: symbol; task: Function; }[] = [];
     #isProcessing: boolean = false;
 
     /**
@@ -198,6 +190,8 @@ export class Concurrency {
     }
 
     async #run() {
+        const free = Symbol();
+
         while (this.#queue.length > 0) {
             const item = this.#queue.splice(0, 1)[0];
             this.#running++;
@@ -205,24 +199,24 @@ export class Concurrency {
             item
                 .task()
                 .then((res: any) => {
-                    this.#eventEmitter.emit(`complete-${item.taskId}`, {
+                    this.#eventEmitter.emit(item.taskId, {
                         taskId: item.taskId,
                         result: res
                     });
                 })
                 .catch((err: any) => {
-                    this.#eventEmitter.emit(`complete-${item.taskId}`, {
+                    this.#eventEmitter.emit(item.taskId, {
                         taskId: item.taskId,
                         error: err
                     });
                 })
                 .finally(() => {
                     this.#running--;
-                    this.#eventEmitter.emit('free');
+                    this.#eventEmitter.emit(free);
                 });
 
             while (this.#running >= this.#maxConcurrency)
-                await new Promise((resolve) => this.#eventEmitter.once('free', resolve));
+                await this.#eventEmitter.once(free);
         }
         this.#isProcessing = false;
     }
@@ -244,11 +238,11 @@ export class Concurrency {
             if (error)
                 throw error;
 
-            const taskId = this.#currentTaskId++;
+            const taskId = Symbol();
 
             results
                 .push(
-                    new Promise((resolve, reject) => this.#eventEmitter.once(`complete-${taskId}`, (task: any) => {
+                    new Promise((resolve, reject) => this.#eventEmitter.once(taskId, (task: any) => {
                         if (task.error) reject(task.error);
                         else resolve(task.result);
                     }))
@@ -289,11 +283,11 @@ export class Concurrency {
         const results = [];
 
         for (const item of items) {
-            const taskId = this.#currentTaskId++;
+            const taskId = Symbol();
 
             results
                 .push(
-                    new Promise((resolve, reject) => this.#eventEmitter.once(`complete-${taskId}`, (task: any) => {
+                    new Promise((resolve, reject) => this.#eventEmitter.once(taskId, (task: any) => {
                         if (task.error) reject(task.error);
                         else resolve(task.result);
                     }))
@@ -345,12 +339,11 @@ export class Concurrency {
             if (error)
                 throw error;
 
-            const taskId = this.#currentTaskId++;
-
+            const taskId = Symbol();
 
             results
                 .push(
-                    new Promise((resolve, reject) => this.#eventEmitter.once(`complete-${taskId}`, (task: any) => {
+                    new Promise((resolve, reject) => this.#eventEmitter.once(taskId, (task: any) => {
                         if (task.error) reject(task.error);
                         else resolve(task.result);
                     }))

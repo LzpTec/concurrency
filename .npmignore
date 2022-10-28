@@ -10,6 +10,7 @@ test
 stryker.conf.json
 .bettercodehub.yml
 examples/
+benchmark/
 *.ts
 !*.d.ts
 pnpm-lock.yaml

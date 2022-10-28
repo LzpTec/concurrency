@@ -1,0 +1,2 @@
+export const isAsyncIterator = <A>(items: AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>): items is AsyncIterable<A | Promise<A>> => Symbol.asyncIterator in items;
+export const isIterator = <A>(items: AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>): items is Iterable<A | Promise<A>> => Symbol.iterator in items;
