@@ -2,38 +2,43 @@ import { Batch, Concurrency } from '@lzptec/concurrency';
 import colors from 'colors';
 import pMap from 'p-map';
 import { Bench } from 'tinybench';
-import { oldBatchMap, oldConcurrencyForEach, oldConcurrencyMap, oldConcurrencyMapSettled } from './old';
 
-const data = Array.from({ length: 16 }, (_, i) => i);
+const data32 = Array.from({ length: 32 }, (_, i) => i);
+
 let idx = 0;
+
+const batchInstance = new Batch(4);
+const concurrencyInstance = new Concurrency(4);
 
 const map = async (bench: Bench) => {
     bench
-        .add('Batch#map - 4', async () => {
-            await Batch.map(data, 4, async (item) => new Promise<number>((resolve) => {
+        .add('Batch#map - 32 items - 4 items per batch', async () => {
+            await Batch.map(data32, 4, async (item) => new Promise<number>((resolve) => {
                 setTimeout(() => resolve(item + 1), 10 + (idx * 5));
             }));
         })
-        .add('Batch#oldBatchMap - 4', async () => {
-            await oldBatchMap(data, 4, async (item) => new Promise<number>((resolve) => {
+        .add('Concurrency#map - 32 items - 4 concurrently jobs', async () => {
+            await Concurrency.map(data32, 4, async (item) => new Promise<number>((resolve) => {
                 setTimeout(() => resolve(item + 1), 10 + (idx * 5));
             }));
         })
-        .add('Concurrency#newMap - 4', async () => {
-            await Concurrency.map(data, 4, async (item) => new Promise<number>((resolve) => {
+
+        .add('BatchInstance#map - 32 items - 4 items per batch', async () => {
+            await batchInstance.map(data32, async (item) => new Promise<number>((resolve) => {
                 setTimeout(() => resolve(item + 1), 10 + (idx * 5));
             }));
         })
-        .add('Concurrency#oldMap - 4', async () => {
-            await oldConcurrencyMap(data, 4, async (item) => new Promise<number>((resolve) => {
+        .add('ConcurrencyInstance#map - 32 items - 4 concurrently jobs', async () => {
+            await concurrencyInstance.map(data32, async (item) => new Promise<number>((resolve) => {
                 setTimeout(() => resolve(item + 1), 10 + (idx * 5));
             }));
         })
-        .add('p-map - 4', async () => {
-            await pMap(data, async (item) => new Promise<number>((resolve) => {
+
+        .add('p-map - 32 items - 4 concurrently jobs', async () => {
+            await pMap(data32, async (item) => new Promise<number>((resolve) => {
                 setTimeout(() => resolve(item + 1), 10 + (idx * 5));
             }), { concurrency: 4 });
-        })
+        });
 
     await bench.run();
     printResults('map', bench);
@@ -42,23 +47,18 @@ const map = async (bench: Bench) => {
 
 const mapSettled = async (bench: Bench) => {
     bench
-        .add('Batch#mapSettled - 4', async () => {
-            await Batch.mapSettled(data, 4, async (item) => new Promise<number>((resolve) => {
+        .add('Batch#mapSettled - 32 items - 4 items per batch', async () => {
+            await Batch.mapSettled(data32, 4, async (item) => new Promise<number>((resolve) => {
                 setTimeout(() => resolve(item + 1), 10 + (idx * 5));
             }));
         })
-        .add('Concurrency#mapSettled - 4', async () => {
-            await Concurrency.mapSettled(data, 4, async (item) => new Promise<number>((resolve) => {
+        .add('Concurrency#mapSettled - 32 items - 4 concurrently jobs', async () => {
+            await Concurrency.mapSettled(data32, 4, async (item) => new Promise<number>((resolve) => {
                 setTimeout(() => resolve(item + 1), 10 + (idx * 5));
             }));
         })
-        .add('Concurrency#oldMapSettled - 4', async () => {
-            await oldConcurrencyMapSettled(data, 4, async (item) => new Promise<number>((resolve) => {
-                setTimeout(() => resolve(item + 1), 10 + (idx * 5));
-            }));
-        })
-        .add('p-map - 4', async () => {
-            await pMap(data, async (item) => new Promise<number>((resolve) => {
+        .add('p-map - 32 items - 4 concurrently jobs', async () => {
+            await pMap(data32, async (item) => new Promise<number>((resolve) => {
                 setTimeout(() => resolve(item + 1), 10 + (idx * 5));
             }), { concurrency: 4, stopOnError: false });
         })
@@ -69,23 +69,18 @@ const mapSettled = async (bench: Bench) => {
 
 const forEach = async (bench: Bench) => {
     bench
-        .add('Batch#forEach - 4', async () => {
-            await Batch.forEach(data, 4, async (item) => new Promise<void>((resolve) => {
+        .add('Batch#forEach - 32 items - 4 items per batch', async () => {
+            await Batch.forEach(data32, 4, async (item) => new Promise<void>((resolve) => {
                 setTimeout(() => { item + 1; resolve() }, 10 + (idx * 5));
             }));
         })
-        .add('Concurrency#forEach - 4', async () => {
-            await Concurrency.forEach(data, 4, async (item) => new Promise<void>((resolve) => {
+        .add('Concurrency#forEach - 32 items - 4 concurrently jobs', async () => {
+            await Concurrency.forEach(data32, 4, async (item) => new Promise<void>((resolve) => {
                 setTimeout(() => { item + 1; resolve() }, 10 + (idx * 5));
             }));
         })
-        .add('Concurrency#oldConcurrencyForEach - 4', async () => {
-            await oldConcurrencyForEach(data, 4, async (item) => new Promise<void>((resolve) => {
-                setTimeout(() => { item + 1; resolve() }, 10 + (idx * 5));
-            }));
-        })
-        .add('p-map - 4', async () => {
-            await pMap(data, async (item) => new Promise<void>((resolve) => {
+        .add('p-map - 32 items - 4 concurrently jobs', async () => {
+            await pMap(data32, async (item) => new Promise<void>((resolve) => {
                 setTimeout(() => { item + 1; resolve() }, 10 + (idx * 5));
             }), { concurrency: 4 });
         })
@@ -104,6 +99,7 @@ const run = async () => {
                 return;
 
             console.log(colors.blue(`${task.name} ended!`));
+            globalThis.gc?.();
         }
     });
 

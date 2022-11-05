@@ -1,63 +1,31 @@
-import { LinkedList } from './linkedlist';
+export class Event {
+    #events = new Set<(...args: any[]) => void>();
 
-type Listener = (...args: any[]) => void;
-
-export class EventEmitter {
-    private events: Map<string | symbol | number, LinkedList<Listener>> = new Map();
-
-    on(event: string | symbol | number, listener: Listener) {
-        const listeners = this.events.get(event) ?? new LinkedList();
-        listeners.insert(listener);
-        this.events.set(event, listeners);
-        return () => this.removeListener(event, listener);
+    on(callback: (...args: any[]) => void) {
+        this.#events.add(callback);
     }
 
-    removeListener(event: string | symbol | number, listener: Listener) {
-        if (!this.events.has(event))
-            return;
+    once(): Promise<any[]>;
+    once(callback?: (...args: any[]) => void): void;
 
-        this.events.get(event)!.remove(listener);
+    once(callback?: (...args: any[]) => void) {
+        if (!callback)
+            return new Promise<any[]>((resolve) => this.once(resolve));
 
-        if (this.events.get(event)?.length === 0)
-            this.events.delete(event);
-    }
-
-    emit(event: string | symbol | number, ...args: any[]) {
-        if (!this.events.has(event))
-            return;
-
-        const events = this.events.get(event)!;
-        for (const listener of events)
-            listener(args);
-    }
-
-    once(event: string | symbol | number, listener: Listener): void;
-    once(event: string | symbol | number): Promise<any>;
-
-    once(event: string | symbol | number, listener?: Listener): Promise<any> | void {
-        if (typeof listener === 'function') {
-            const remove = this.on(event, (...args) => {
-                remove();
-                listener(...args);
-            });
-            return;
+        const ev = (...args: any[]) => {
+            this.off(ev);
+            callback(args);
         }
-
-        return new Promise<any>((resolve) => {
-            const remove = this
-                .on(event, (...args) => {
-                    remove();
-                    resolve(args);
-                });
-        });
+        this.#events.add(ev);
+        return;
     }
 
-    removeAllListeners(event?: string | symbol | number) {
-        if (event) {
-            this.events.delete(event);
-            return;
-        }
+    off(callback: (...args: any[]) => void) {
+        this.#events.delete(callback);
+    }
 
-        this.events.clear();
+    emit(...args: any[]) {
+        for (const ev of this.#events)
+            ev(...args);
     }
 }

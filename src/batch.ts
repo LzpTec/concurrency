@@ -1,16 +1,9 @@
-import { EventEmitter } from './event-emitter';
+import { Queue } from './collections';
+import { Event } from './event-emitter';
 import { isAsyncIterator, isIterator } from './guards';
+import type { Input, Job, Task } from './types';
 
-/**
- * @template A
- * @template B
- * @callback Task
- * @param {A} item
- * @returns {Promise.<B> | B}
- */
-type Task<A, B> = (item: A) => Promise<B> | B;
-
-const MAX_TASK_ID = Number.MAX_SAFE_INTEGER - 1;
+const JOB_DONE = Symbol(`JobDone`);
 
 export class Batch {
     /**
@@ -19,12 +12,12 @@ export class Batch {
      *
      * @template A
      * @template B
-     * @param {AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>} items Arguments to pass to the task for each call.
+     * @param {Input<A>} items Arguments to pass to the task for each call.
      * @param {number} batchSize
-     * @param {Task.<A, B>} task The task to run for each item.
-     * @returns {Promise.<B[]>}
+     * @param {Task<A, B>} task The task to run for each item.
+     * @returns {Promise<B[]>}
      */
-    static async map<A, B>(items: AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>, batchSize: number, task: Task<A, B>): Promise<B[]> {
+    static async map<A, B>(items: Input<A>, batchSize: number, task: Task<A, B>): Promise<B[]> {
         const isAsync = isAsyncIterator(items);
         const isSync = isIterator(items);
         const results: B[] = new Array();
@@ -55,12 +48,15 @@ export class Batch {
                                     return res.value;
 
                                 done = true;
-                                resolve();
-                                throw 'done';
+                                return JOB_DONE;
                             })
-                            .then(res => task(res!))
-                            .then(res => { results[index] = res!; resolve(); })
-                            .catch(err => err !== 'done' ? reject(err) : {})
+                            .then(async res => {
+                                if (res !== JOB_DONE)
+                                    results[index] = await Promise.resolve(task(res!));
+
+                                resolve();
+                            })
+                            .catch(err => reject(err))
                     )
                 );
 
@@ -85,19 +81,66 @@ export class Batch {
      *
      * @template A
      * @template B
-     * @param {A[]} items Arguments to pass to the task for each call.
+     * @param {Input<A>} items Arguments to pass to the task for each call.
      * @param {number} batchSize
-     * @param {Task.<A, B>} task The task to run for each item.
-     * @returns {Promise.<PromiseSettledResult.<B>[]>}
+     * @param {Task<A, B>} task The task to run for each item.
+     * @returns {Promise<PromiseSettledResult<B>[]>}
      */
-    static async mapSettled<A, B>(items: A[], batchSize: number, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        let position = 0;
-        const results = new Array();
-        while (position < items.length) {
-            const itemsForBatch = items.slice(position, position + batchSize);
-            results.push(...await Promise.allSettled(itemsForBatch.map(item => task(item))));
-            position += batchSize;
+    static async mapSettled<A, B>(items: Input<A>, batchSize: number, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+        const isAsync = isAsyncIterator(items);
+        const isSync = isIterator(items);
+        const results: PromiseSettledResult<B>[] = new Array();
+
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+
+        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        let idx = 0;
+
+
+        let p = [];
+        let done = false;
+
+        do {
+            if (done) break;
+
+            const index = idx;
+            idx++;
+
+            p
+                .push(
+                    new Promise<void>((resolve) =>
+                        Promise
+                            .resolve(iterator.next())
+                            .then(res => {
+                                if (!res.done)
+                                    return res.value;
+
+                                done = true;
+                                return JOB_DONE;
+                            })
+                            .then(async res => {
+                                if (res !== JOB_DONE)
+                                    results[index] = { status: 'fulfilled', value: await Promise.resolve(task(res!)) };
+
+                                resolve();
+                            })
+                            .catch(err => { results[index] = { status: 'rejected', reason: err } })
+                    )
+                );
+
+            if (p.length >= batchSize) {
+                await Promise.all(p);
+                p = [];
+            }
+
+        } while (true);
+
+        if (p.length > 0) {
+            await Promise.all(p);
+            p = [];
         }
+
         return results;
     }
 
@@ -106,25 +149,65 @@ export class Batch {
      * the first {batchSize} promises to finish before starting the next batch.
      *
      * @template A
-     * @param {A[]} items Arguments to pass to the task for each call.
+     * @param {Input<A>} items Arguments to pass to the task for each call.
      * @param {number} batchSize
-     * @param {Task.<A, void>} task The task to run for each item.
+     * @param {Task<A, void>} task The task to run for each item.
      * @returns {Promise<void>}
      */
-    static async forEach<A>(items: A[], batchSize: number, task: Task<A, void>): Promise<void> {
-        let position = 0;
-        while (position < items.length) {
-            const itemsForBatch = items.slice(position, position + batchSize);
-            await Promise.all(itemsForBatch.map(item => task(item)));
-            position += batchSize;
+    static async forEach<A>(items: Input<A>, batchSize: number, task: Task<A, void>): Promise<void> {
+        const isAsync = isAsyncIterator(items);
+        const isSync = isIterator(items);
+
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+
+        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        let p = [];
+        let done = false;
+
+        do {
+            if (done) break;
+
+            p
+                .push(
+                    new Promise<void>((resolve, reject) =>
+                        Promise
+                            .resolve(iterator.next())
+                            .then(res => {
+                                if (!res.done)
+                                    return res.value;
+
+                                done = true;
+                                return JOB_DONE;
+                            })
+                            .then(async res => {
+                                if (res !== JOB_DONE)
+                                    await Promise.resolve(task(res!));
+
+                                resolve();
+                            })
+                            .catch(err => reject(err))
+                    )
+                );
+
+            if (p.length >= batchSize) {
+                await Promise.all(p);
+                p = [];
+            }
+
+        } while (true);
+
+        if (p.length > 0) {
+            await Promise.all(p);
+            p = [];
         }
     }
 
     #batchSize: number;
-    #eventEmitter: EventEmitter = new EventEmitter();
-    #currentTaskId: number = 0;
-    #queue: { taskId: number; task: Function; }[] = [];
+    #currentRunning: number = 0;
+    #queue: Queue<Job> = new Queue();
     #isProcessing: boolean = false;
+    #waitEvent: Event = new Event();
 
     /**
      * 
@@ -135,38 +218,41 @@ export class Batch {
             throw new Error('Parameter maxConcurrency invalid!');
 
         this.#batchSize = batchSize;
+    }
 
-        this.#eventEmitter
-            .on('newTask', async (item: any) => {
-                this.#queue.push(item);
-                if (!this.#isProcessing) {
-                    this.#isProcessing = true;
-                    this.#run();
-                }
-            });
+    #runJob<T>(task: () => Promise<T> | T): Promise<T> {
+        return new Promise((resolve, reject) => {
+            this.#queue.enqueue({ task, resolve, reject });
+            if (!this.#isProcessing) {
+                this.#isProcessing = true;
+                this.#run();
+            }
+        });
     }
 
     async #run() {
-        while (this.#queue.length > 0) {
-            const items = this.#queue.splice(0, this.#batchSize);
+        let jobs = [];
+        while (!this.#queue.isEmpty()) {
+            const job = this.#queue.dequeue()!;
 
-            await Promise.all(items.map(async item => {
-                await item
-                    .task()
-                    .then((res: any) => {
-                        this.#eventEmitter.emit(item.taskId, {
-                            taskId: item.taskId,
-                            result: res
-                        });
-                    })
-                    .catch((err: any) => {
-                        this.#eventEmitter.emit(item.taskId, {
-                            taskId: item.taskId,
-                            error: err
-                        });
-                    });
-            }));
+            jobs
+                .push(
+                    Promise.resolve(job.task())
+                        .then(res => job.resolve(res))
+                        .catch(err => job.reject(err))
+                );
+
+            this.#currentRunning++;
+            await Promise.resolve();
+
+            if (this.#currentRunning === this.#batchSize) {
+                await Promise.all(jobs);
+                this.#waitEvent.emit();
+                jobs = [];
+                this.#currentRunning = 0;
+            }
         }
+
         this.#isProcessing = false;
     }
 
@@ -176,48 +262,64 @@ export class Batch {
      *
      * @template A
      * @template B
-     * @param {A[]} items Arguments to pass to the task for each call.
-     * @param {Task.<A, B>} task The task to run for each item.
-     * @returns {Promise.<B[]>}
+     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Task<A, B>} task The task to run for each item.
+     * @returns {Promise<B[]>}
      */
-    async map<A, B>(items: A[], task: Task<A, B>): Promise<B[]> {
-        const results = [];
-        let error: any;
+    async map<A, B>(items: Input<A>, task: Task<A, B>): Promise<B[]> {
+        const isAsync = isAsyncIterator(items);
+        const isSync = isIterator(items);
+        const results: B[] = new Array();
 
-        for (const item of items) {
-            if (error)
-                throw error;
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-            const taskId = this.#currentTaskId >= (MAX_TASK_ID) ? (this.#currentTaskId = 0) : this.#currentTaskId++;
+        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        let idx = 0;
 
-            results
+        let p = [];
+        let done = false;
+
+        do {
+            if (done)
+                break;
+
+            const index = idx;
+            idx++;
+
+            p
                 .push(
-                    new Promise((resolve, reject) => this.#eventEmitter.once(taskId, (task: any) => {
-                        if (task.error) reject(task.error);
-                        else resolve(task.result);
-                    }))
-                        .catch(err => {
-                            error = err;
+                    this.#runJob(() => Promise
+                        .resolve(iterator.next())
+                        .then(res => {
+                            if (!res.done)
+                                return res.value;
+
+                            done = true;
+                            return JOB_DONE;
+                        })
+                        .then(async res => {
+                            if (res !== JOB_DONE)
+                                results[index] = await Promise.resolve(task(res!));
+
                             return;
                         })
+                    )
                 );
 
-            this.#eventEmitter
-                .emit('newTask', {
-                    taskId,
-                    task: () => Promise.resolve(task(item))
-                });
+            await Promise.resolve();
+            if (this.#currentRunning === this.#batchSize) {
+                await this.#waitEvent.once();
+                p = [];
+            }
+        } while (true);
+
+        if (p.length > 0) {
+            await Promise.all(p);
+            p = [];
         }
 
-        return Promise
-            .all(results)
-            .then(res => {
-                if (error)
-                    throw error;
-
-                const result: any = res;
-                return result;
-            });
+        return results;
     }
 
     /**
@@ -226,52 +328,72 @@ export class Batch {
      *
      * @template A
      * @template B
-     * @param {A[]} items Arguments to pass to the task for each call.
-     * @param {Task.<A, B>} task The task to run for each item.
-     * @returns {Promise.<PromiseSettledResult.<B>[]>}
+     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Task<A, B>} task The task to run for each item.
+     * @returns {Promise<PromiseSettledResult<B>[]>}
      */
-    async mapSettled<A, B>(items: A[], task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const results = [];
+    async mapSettled<A, B>(items: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+        const isAsync = isAsyncIterator(items);
+        const isSync = isIterator(items);
+        const results: PromiseSettledResult<B>[] = new Array();
 
-        for (const item of items) {
-            const taskId = this.#currentTaskId >= (MAX_TASK_ID) ? (this.#currentTaskId = 0) : this.#currentTaskId++;
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-            results
+        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        let idx = 0;
+
+        let p = [];
+        let done = false;
+
+        do {
+            if (done)
+                break;
+
+            const index = idx;
+            idx++;
+
+            p
                 .push(
-                    this.#eventEmitter
-                        .once(taskId)
-                        .then((task: any) => {
-                            if (task.error) return { error: task.error, result: null };
-                            return { error: null, result: task.result };
+                    this.#runJob(() => Promise
+                        .resolve(iterator.next())
+                        .then(res => {
+                            if (!res.done)
+                                return res.value;
+
+                            done = true;
+                            return JOB_DONE;
                         })
+                        .then(async res => {
+                            if (res !== JOB_DONE)
+                                results[index] = {
+                                    status: 'fulfilled',
+                                    value: await Promise.resolve(task(res!))
+                                };
+
+                            return;
+                        }).catch(err => {
+                            results[index] = {
+                                status: 'rejected',
+                                reason: err
+                            };
+                        })
+                    )
                 );
 
-            this.#eventEmitter
-                .emit('newTask', {
-                    taskId,
-                    task: () => Promise.resolve(task(item))
-                });
+            await Promise.resolve();
+            if (this.#currentRunning === this.#batchSize) {
+                await this.#waitEvent.once();
+                p = [];
+            }
+        } while (true);
+
+        if (p.length > 0) {
+            await Promise.all(p);
+            p = [];
         }
 
-        return await Promise
-            .all(results)
-            .then(res => {
-                const response: any[] = res
-                    .map(x => {
-                        if (x.error)
-                            return /** @type * */{
-                                status: "rejected",
-                                reason: x.error
-                            }
-
-                        return {
-                            status: "fulfilled",
-                            value: x.result
-                        }
-                    });
-
-                return response;
-            });
+        return results;
     }
 
     /**
@@ -279,47 +401,58 @@ export class Batch {
      * the first {batchSize} promises to finish before starting the next batch.
      *
      * @template A
-     * @param {A[]} items Arguments to pass to the task for each call.
-     * @param {Task.<A, void>} task The task to run for each item.
-     * @returns {Promise.<void>}
+     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Task<A, void>} task The task to run for each item.
+     * @returns {Promise<void>}
      */
-    async forEach<A>(items: A[], task: Task<A, void>): Promise<void> {
-        const results = [];
-        let error: any;
+    async forEach<A>(items: Input<A>, task: Task<A, void>): Promise<void> {
+        const isAsync = isAsyncIterator(items);
+        const isSync = isIterator(items);
 
-        for (const item of items) {
-            if (error)
-                throw error;
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-            const taskId = this.#currentTaskId >= (MAX_TASK_ID) ? (this.#currentTaskId = 0) : this.#currentTaskId++;
+        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
 
-            results
+        let p = [];
+        let done = false;
+
+        do {
+            if (done)
+                break;
+
+            p
                 .push(
-                    new Promise((resolve, reject) => this.#eventEmitter.once(taskId, (task: any) => {
-                        if (task.error) reject(task.error);
-                        else resolve(task.result);
-                    }))
-                        .catch(err => {
-                            error = err;
+                    this.#runJob(() => Promise
+                        .resolve(iterator.next())
+                        .then(res => {
+                            if (!res.done)
+                                return res.value;
+
+                            done = true;
+                            return JOB_DONE;
+                        })
+                        .then(async res => {
+                            if (res !== JOB_DONE)
+                                await Promise.resolve(task(res!));
+
                             return;
                         })
-                )
+                        .catch(err => { throw err; })
+                    )
+                );
 
-            this.#eventEmitter
-                .emit('newTask', {
-                    taskId,
-                    task: () => Promise.resolve(task(item))
-                });
+            await Promise.resolve();
+            if (this.#currentRunning === this.#batchSize) {
+                await this.#waitEvent.once();
+                p = [];
+            }
+        } while (true);
+
+        if (p.length > 0) {
+            await Promise.all(p);
+            p = [];
         }
-
-        return Promise
-            .all(results)
-            .then(() => {
-                if (error)
-                    throw error;
-
-                return;
-            });
     }
 }
 

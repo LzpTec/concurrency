@@ -1,6 +1,6 @@
 {
   "name": "@lzptec/concurrency",
-  "version": "0.0.1-4",
+  "version": "0.0.1-5",
   "description": "A lightweight async context manager for typescript and javascript",
   "author": "André Posso <admin@lzptec.com>",
   "license": "MIT",
@@ -21,8 +21,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "start": "tsc -w",
-    "build": "tsup src/index.ts --dts --clean",
+    "build": "tsup",
     "prepublish": "pnpm run build",
     "tsc": "tsc",
     "test": "echo \"No test specified\""
