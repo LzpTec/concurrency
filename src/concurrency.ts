@@ -157,7 +157,57 @@ export class Concurrency {
             .all(wait);
     }
 
-    #maxConcurrency: number;
+    /**
+     * TODO DESC
+     *
+     * @template A
+     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {number} maxConcurrency
+     * @param {Task<A, void>} predicate The task to run for each item.
+     * @returns {Promise<void>}
+     */
+    static async filter<A>(items: Input<A>, maxConcurrency: number, predicate: Task<A, boolean>): Promise<A[]> {
+        return new Promise<A[]>(async (resolve, reject) => {
+            const isAsync = isAsyncIterator(items);
+            const isSync = isIterator(items);
+            const results: A[] = new Array();
+
+            if (!isAsync && !isSync)
+                throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+
+            const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+
+            const wait = new Array(maxConcurrency);
+            for (let i = 0; i < maxConcurrency; i++)
+                wait[i] = new Promise<void>(
+                    async (resolve, reject) => {
+                        try {
+                            do {
+                                const item = await iterator.next();
+                                if (item.done) break;
+
+                                const value = await item.value;
+                                const filter = await predicate(value);
+                                if (filter)
+                                    results.push(value);
+                            } while (true);
+
+                            resolve();
+                        } catch (err) {
+                            reject(err);
+                            return;
+                        }
+                    }
+                );
+
+            await Promise
+                .all(wait)
+                .then(() => resolve(results))
+                .catch(err => reject(err));
+        });
+    }
+
+    #maxConcurrency: number = 1;
     #currentRunning: number = 0;
     #queue: Queue<Job> = new Queue();
     #waitEvent: Event = new Event();
@@ -167,10 +217,7 @@ export class Concurrency {
      * @param {number} maxConcurrency 
      */
     constructor(maxConcurrency: number) {
-        if (typeof maxConcurrency !== 'number' || isNaN(maxConcurrency))
-            throw new Error('Parameter maxConcurrency invalid!');
-
-        this.#maxConcurrency = maxConcurrency;
+        this.maxConcurrency = maxConcurrency;
     }
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {
@@ -181,7 +228,7 @@ export class Concurrency {
     }
 
     async #run() {
-        if (this.#currentRunning === this.#maxConcurrency)
+        if (this.#currentRunning >= this.#maxConcurrency)
             return;
 
         this.#currentRunning++;
@@ -249,7 +296,7 @@ export class Concurrency {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning === this.#maxConcurrency)
+            if (this.#currentRunning >= this.#maxConcurrency)
                 await this.#waitEvent.once();
 
         } while (true);
@@ -319,7 +366,7 @@ export class Concurrency {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning === this.#maxConcurrency)
+            if (this.#currentRunning >= this.#maxConcurrency)
                 await this.#waitEvent.once();
         } while (true);
 
@@ -375,13 +422,84 @@ export class Concurrency {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning === this.#maxConcurrency)
+            if (this.#currentRunning >= this.#maxConcurrency)
                 await this.#waitEvent.once();
         } while (true);
 
         if (p.length > 0)
             await Promise.all(p);
     }
+
+    /**
+     * TODO DESC
+     *
+     * @template A
+     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Task<A, void>} predicate The task to run for each item.
+     * @returns {Promise<void>}
+     */
+    async filter<A>(items: Input<A>, predicate: Task<A, boolean>): Promise<A[]> {
+        const isAsync = isAsyncIterator(items);
+        const isSync = isIterator(items);
+        const results: A[] = new Array();
+
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+
+        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+
+        let p = [];
+        let done = false;
+
+        do {
+            if (done)
+                break;
+
+            p
+                .push(
+                    this.#runJob(() => Promise
+                        .resolve(iterator.next())
+                        .then(res => {
+                            if (!res.done)
+                                return res.value;
+
+                            done = true;
+                            return JOB_DONE;
+                        })
+                        .then(async res => {
+                            if (res !== JOB_DONE) {
+                                const filter = await Promise.resolve(predicate(res!))
+                                if (filter)
+                                    results.push(res);
+                            }
+
+                            return;
+                        })
+                    )
+                );
+
+            await Promise.resolve();
+            if (this.#currentRunning >= this.#maxConcurrency)
+                await this.#waitEvent.once();
+
+        } while (true);
+
+        if (p.length > 0)
+            await Promise.all(p);
+
+        return results;
+    }
+
+    set maxConcurrency(value: number) {
+        if (typeof value !== 'number' || isNaN(value) || !Number.isInteger(value))
+            throw new Error('Parameter maxConcurrency invalid!');
+
+        if (value < 1)
+            throw new Error('Parameter maxConcurrency must be at least 1!');
+
+        this.#maxConcurrency = value;
+    }
+
 }
 
 Object.freeze(Concurrency);

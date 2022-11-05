@@ -203,10 +203,75 @@ export class Batch {
         }
     }
 
-    #batchSize: number;
+    /**
+     * TODO DESC
+     *
+     * @template A
+     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {number} batchSize
+     * @param {Task<A, void>} predicate The filter method calls the predicate function one time for each element in the array.
+     * @returns {Promise<void>}
+     */
+    static async filter<A>(items: Input<A>, batchSize: number, predicate: Task<A, boolean>): Promise<A[]> {
+        const isAsync = isAsyncIterator(items);
+        const isSync = isIterator(items);
+        const results: A[] = new Array();
+
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+
+        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+
+        let p = [];
+        let done = false;
+
+        do {
+            if (done) break;
+
+            p
+                .push(
+                    new Promise<void>((resolve, reject) =>
+                        Promise
+                            .resolve(iterator.next())
+                            .then(res => {
+                                if (!res.done)
+                                    return res.value;
+
+                                done = true;
+                                return JOB_DONE;
+                            })
+                            .then(async res => {
+                                if (res !== JOB_DONE) {
+                                    const filter = await Promise.resolve(predicate(res!));
+
+                                    if (filter)
+                                        results.push(res);
+                                }
+
+                                resolve();
+                            })
+                            .catch(err => reject(err))
+                    )
+                );
+
+            if (p.length >= batchSize) {
+                await Promise.all(p);
+                p = [];
+            }
+
+        } while (true);
+
+        if (p.length > 0) {
+            await Promise.all(p);
+            p = [];
+        }
+
+        return results;
+    }
+
+    #batchSize: number = 1;
     #currentRunning: number = 0;
     #queue: Queue<Job> = new Queue();
-    #isProcessing: boolean = false;
     #waitEvent: Event = new Event();
 
     /**
@@ -214,46 +279,37 @@ export class Batch {
      * @param {number} batchSize 
      */
     constructor(batchSize: number) {
-        if (typeof batchSize !== 'number' || isNaN(batchSize))
-            throw new Error('Parameter maxConcurrency invalid!');
-
-        this.#batchSize = batchSize;
+        this.batchSize = batchSize;
     }
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {
         return new Promise((resolve, reject) => {
             this.#queue.enqueue({ task, resolve, reject });
-            if (!this.#isProcessing) {
-                this.#isProcessing = true;
-                this.#run();
-            }
+            this.#run();
         });
     }
 
     async #run() {
-        let jobs = [];
+        if (this.#currentRunning >= this.#batchSize)
+            return;
+
+        await Promise.resolve();
+        const jobs = new Array(this.#batchSize);
         while (!this.#queue.isEmpty()) {
             const job = this.#queue.dequeue()!;
 
-            jobs
-                .push(
-                    Promise.resolve(job.task())
-                        .then(res => job.resolve(res))
-                        .catch(err => job.reject(err))
-                );
+            jobs[this.#currentRunning] = Promise
+                .resolve(job.task())
+                .then(res => job.resolve(res))
+                .catch(err => job.reject(err));
 
             this.#currentRunning++;
-            await Promise.resolve();
-
-            if (this.#currentRunning === this.#batchSize) {
+            if (this.#currentRunning >= this.#batchSize) {
                 await Promise.all(jobs);
                 this.#waitEvent.emit();
-                jobs = [];
                 this.#currentRunning = 0;
             }
         }
-
-        this.#isProcessing = false;
     }
 
     /**
@@ -308,16 +364,14 @@ export class Batch {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning === this.#batchSize) {
+            if (this.#currentRunning >= this.#batchSize) {
                 await this.#waitEvent.once();
                 p = [];
             }
         } while (true);
 
-        if (p.length > 0) {
+        if (p.length > 0)
             await Promise.all(p);
-            p = [];
-        }
 
         return results;
     }
@@ -382,16 +436,14 @@ export class Batch {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning === this.#batchSize) {
+            if (this.#currentRunning >= this.#batchSize) {
                 await this.#waitEvent.once();
                 p = [];
             }
         } while (true);
 
-        if (p.length > 0) {
+        if (p.length > 0)
             await Promise.all(p);
-            p = [];
-        }
 
         return results;
     }
@@ -443,17 +495,87 @@ export class Batch {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning === this.#batchSize) {
+            if (this.#currentRunning >= this.#batchSize) {
                 await this.#waitEvent.once();
                 p = [];
             }
         } while (true);
 
-        if (p.length > 0) {
+        if (p.length > 0)
             await Promise.all(p);
-            p = [];
-        }
     }
+
+    /**
+     * TODO DESC
+     *
+     * @template A
+     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Task<A, boolean>} predicate The filter method calls the predicate function one time for each element in the array.
+     * @returns {Promise<void>}
+     */
+    async filter<A>(items: Input<A>, predicate: Task<A, boolean>): Promise<A[]> {
+        const isAsync = isAsyncIterator(items);
+        const isSync = isIterator(items);
+        const results: A[] = new Array();
+
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+
+        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+
+        let p = [];
+        let done = false;
+
+        do {
+            if (done)
+                break;
+
+            p
+                .push(
+                    this.#runJob(() => Promise
+                        .resolve(iterator.next())
+                        .then(res => {
+                            if (!res.done)
+                                return res.value;
+
+                            done = true;
+                            return JOB_DONE;
+                        })
+                        .then(async res => {
+                            if (res !== JOB_DONE) {
+                                const filter = await Promise.resolve(predicate(res!))
+                                if (filter)
+                                    results.push(res);
+                            }
+
+                            return;
+                        })
+                    )
+                );
+
+            await Promise.resolve();
+            if (this.#currentRunning >= this.#batchSize) {
+                await this.#waitEvent.once();
+                p = [];
+            }
+        } while (true);
+
+        if (p.length > 0)
+            await Promise.all(p);
+
+        return results;
+    }
+
+    set batchSize(value: number) {
+        if (typeof value !== 'number' || isNaN(value) || !Number.isInteger(value))
+            throw new Error('Parameter batchSize invalid!');
+
+        if (value < 1)
+            throw new Error('Parameter batchSize must be at least 1!');
+
+        this.#batchSize = value;
+    }
+
 }
 
 Object.freeze(Batch);

@@ -40,10 +40,44 @@ const run = async () => {
             setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
         }))),
         _3: (() => { idx = 0; globalThis.gc?.(); })(),
-
     };
     map;
-    // console.log(map)
+    console.log(JSON.stringify(map));
+
+    const filterSymbol = Symbol();
+
+    const filter = {
+        'Batch.filter 4': await Batch.filter(data, 4, async (item) => new Promise((resolve) => {
+            console.log(`Batch.filter ${idx++} - Item ${item}`)
+            setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
+        })),
+        _: (() => { idx = 0; globalThis.gc?.(); })(),
+
+        'BatchInstance.filter 4': await batchInstance.filter(data, async (item) => new Promise((resolve) => {
+            console.log(`BatchInstance.filter ${idx++} - Item ${item}`)
+            setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
+        })),
+        _0: (() => { idx = 0; globalThis.gc?.(); })(),
+
+        'Concurrency.filter 4': await Concurrency.filter(data, 4, async (item) => new Promise((resolve) => {
+            console.log(`Concurrency.filter ${idx++}`)
+            setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
+        })),
+        _1: (() => { idx = 0; globalThis.gc?.(); })(),
+
+        'ConcurrencyInstance.filter 4': await concurrencyInstance.filter(data, async (item) => new Promise((resolve) => {
+            console.log(`ConcurrencyInstance.filter ${idx++}`)
+            setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
+        })),
+        _2: (() => { idx = 0; globalThis.gc?.(); })(),
+
+        'Promise.all': await Promise.all(data.map(async item => new Promise((resolve) => {
+            setTimeout(() => resolve(item % 2 === 0 ? item : filterSymbol), 400 + (idx * 50));
+        }))).then(res => res.filter((x): x is number => x !== filterSymbol)),
+        _3: (() => { idx = 0; globalThis.gc?.(); })(),
+    };
+    filter;
+    console.log(JSON.stringify(filter));
 
     const mapSettled = {
         'Batch.mapSettled 4': await Batch.mapSettled(data, 4, async (item) => new Promise((resolve) => {
@@ -66,7 +100,7 @@ const run = async () => {
 
     };
     mapSettled;
-    // console.log(mapSettled)
+    console.log(JSON.stringify(mapSettled));
 
     const forEach = {
         'Batch.forEach 4': await Batch.forEach(data, 4, async (item) => new Promise((resolve) => {
@@ -89,7 +123,6 @@ const run = async () => {
 
     };
     forEach;
-    // console.log(forEach);
 
 };
 

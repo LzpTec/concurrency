@@ -3,64 +3,67 @@ import colors from 'colors';
 import pMap from 'p-map';
 import { Bench } from 'tinybench';
 
-const data32 = Array.from({ length: 32 }, (_, i) => i);
+const dataSize = 32;
+const batchSize = 4;
+const maxConcurrency = 4;
+
+const data = Array.from({ length: dataSize }, (_, i) => i);
 
 let idx = 0;
 
-const batchInstance = new Batch(4);
-const concurrencyInstance = new Concurrency(4);
+const batchInstance = new Batch(batchSize);
+const concurrencyInstance = new Concurrency(maxConcurrency);
 
 const map = async (bench: Bench) => {
     bench
-        .add('Batch#map - 32 items - 4 items per batch', async () => {
-            await Batch.map(data32, 4, async (item) => new Promise<number>((resolve) => {
-                setTimeout(() => resolve(item + 1), 10 + (idx * 5));
+        .add(`Batch#map - ${data.length} items - ${batchSize} items per batch`, async () => {
+            await Batch.map(data, batchSize, async (item) => new Promise<number>((resolve) => {
+                setTimeout(() => resolve(item + 1), 5 + (idx * 5));
             }));
         })
-        .add('Concurrency#map - 32 items - 4 concurrently jobs', async () => {
-            await Concurrency.map(data32, 4, async (item) => new Promise<number>((resolve) => {
-                setTimeout(() => resolve(item + 1), 10 + (idx * 5));
-            }));
-        })
-
-        .add('BatchInstance#map - 32 items - 4 items per batch', async () => {
-            await batchInstance.map(data32, async (item) => new Promise<number>((resolve) => {
-                setTimeout(() => resolve(item + 1), 10 + (idx * 5));
-            }));
-        })
-        .add('ConcurrencyInstance#map - 32 items - 4 concurrently jobs', async () => {
-            await concurrencyInstance.map(data32, async (item) => new Promise<number>((resolve) => {
-                setTimeout(() => resolve(item + 1), 10 + (idx * 5));
+        .add(`Concurrency#map - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await Concurrency.map(data, maxConcurrency, async (item) => new Promise<number>((resolve) => {
+                setTimeout(() => resolve(item + 1), 5 + (idx * 5));
             }));
         })
 
-        .add('p-map - 32 items - 4 concurrently jobs', async () => {
-            await pMap(data32, async (item) => new Promise<number>((resolve) => {
-                setTimeout(() => resolve(item + 1), 10 + (idx * 5));
-            }), { concurrency: 4 });
+        .add(`BatchInstance#map - ${data.length} items - ${batchSize} items per batch`, async () => {
+            await batchInstance.map(data, async (item) => new Promise<number>((resolve) => {
+                setTimeout(() => resolve(item + 1), 5 + (idx * 5));
+            }));
+        })
+        .add(`ConcurrencyInstance#map - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await concurrencyInstance.map(data, async (item) => new Promise<number>((resolve) => {
+                setTimeout(() => resolve(item + 1), 5 + (idx * 5));
+            }));
+        })
+
+        .add(`p-map - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await pMap(data, async (item) => new Promise<number>((resolve) => {
+                setTimeout(() => resolve(item + 1), 5 + (idx * 5));
+            }), { concurrency: maxConcurrency });
         });
 
     await bench.run();
     printResults('map', bench);
-
 }
 
 const mapSettled = async (bench: Bench) => {
     bench
-        .add('Batch#mapSettled - 32 items - 4 items per batch', async () => {
-            await Batch.mapSettled(data32, 4, async (item) => new Promise<number>((resolve) => {
-                setTimeout(() => resolve(item + 1), 10 + (idx * 5));
+        .add(`Batch#mapSettled - ${data.length} items - ${batchSize} items per batch`, async () => {
+            await Batch.mapSettled(data, batchSize, async (item) => new Promise<number>((resolve) => {
+                setTimeout(() => resolve(item + 1), 5 + (idx * 5));
             }));
         })
-        .add('Concurrency#mapSettled - 32 items - 4 concurrently jobs', async () => {
-            await Concurrency.mapSettled(data32, 4, async (item) => new Promise<number>((resolve) => {
-                setTimeout(() => resolve(item + 1), 10 + (idx * 5));
+        .add(`Concurrency#mapSettled - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await Concurrency.mapSettled(data, maxConcurrency, async (item) => new Promise<number>((resolve) => {
+                setTimeout(() => resolve(item + 1), 5 + (idx * 5));
             }));
         })
-        .add('p-map - 32 items - 4 concurrently jobs', async () => {
-            await pMap(data32, async (item) => new Promise<number>((resolve) => {
-                setTimeout(() => resolve(item + 1), 10 + (idx * 5));
-            }), { concurrency: 4, stopOnError: false });
+        .add(`p-map - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await pMap(data, async (item) => new Promise<number>((resolve) => {
+                setTimeout(() => resolve(item + 1), 5 + (idx * 5));
+            }), { concurrency: maxConcurrency, stopOnError: false });
         })
 
     await bench.run();
@@ -69,24 +72,59 @@ const mapSettled = async (bench: Bench) => {
 
 const forEach = async (bench: Bench) => {
     bench
-        .add('Batch#forEach - 32 items - 4 items per batch', async () => {
-            await Batch.forEach(data32, 4, async (item) => new Promise<void>((resolve) => {
-                setTimeout(() => { item + 1; resolve() }, 10 + (idx * 5));
+        .add(`Batch#forEach - ${data.length} items - ${batchSize} items per batch`, async () => {
+            await Batch.forEach(data, batchSize, async (item) => new Promise<void>((resolve) => {
+                setTimeout(() => { item + 1; resolve() }, 5 + (idx * 5));
             }));
         })
-        .add('Concurrency#forEach - 32 items - 4 concurrently jobs', async () => {
-            await Concurrency.forEach(data32, 4, async (item) => new Promise<void>((resolve) => {
-                setTimeout(() => { item + 1; resolve() }, 10 + (idx * 5));
+        .add(`Concurrency#forEach - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await Concurrency.forEach(data, maxConcurrency, async (item) => new Promise<void>((resolve) => {
+                setTimeout(() => { item + 1; resolve() }, 5 + (idx * 5));
             }));
         })
-        .add('p-map - 32 items - 4 concurrently jobs', async () => {
-            await pMap(data32, async (item) => new Promise<void>((resolve) => {
-                setTimeout(() => { item + 1; resolve() }, 10 + (idx * 5));
-            }), { concurrency: 4 });
+        .add(`p-map - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await pMap(data, async (item) => new Promise<void>((resolve) => {
+                setTimeout(() => { item + 1; resolve() }, 5 + (idx * 5));
+            }), { concurrency: maxConcurrency });
         })
 
     await bench.run();
     printResults('forEach', bench);
+}
+
+const filterSymbol = Symbol();
+const filter = async (bench: Bench) => {
+    bench
+        .add(`Batch#filter - ${data.length} items - ${batchSize} items per batch`, async () => {
+            await Batch.filter(data, batchSize, async (item) => new Promise<boolean>((resolve) => {
+                setTimeout(() => resolve(item % 2 === 0), 5 + (idx * 5));
+            }));
+        })
+        .add(`Concurrency#filter - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await Concurrency.filter(data, maxConcurrency, async (item) => new Promise<boolean>((resolve) => {
+                setTimeout(() => resolve(item % 2 === 0), 5 + (idx * 5));
+            }));
+        })
+
+        .add(`BatchInstance#filter - ${data.length} items - ${batchSize} items per batch`, async () => {
+            await batchInstance.filter(data, async (item) => new Promise<boolean>((resolve) => {
+                setTimeout(() => resolve(item % 2 === 0), 5 + (idx * 5));
+            }));
+        })
+        .add(`ConcurrencyInstance#filter - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await concurrencyInstance.filter(data, async (item) => new Promise<boolean>((resolve) => {
+                setTimeout(() => resolve(item % 2 === 0), 5 + (idx * 5));
+            }));
+        })
+
+        .add(`p-map - Filter - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await pMap(data, async (item) => new Promise<number | symbol>((resolve) => {
+                setTimeout(() => resolve(item % 2 === 0 ? item : filterSymbol), 5 + (idx * 5));
+            }), { concurrency: maxConcurrency }).then(res => res.filter((x): x is number => x !== filterSymbol))
+        });
+
+    await bench.run();
+    printResults('filter', bench);
 }
 
 const run = async () => {
@@ -108,6 +146,8 @@ const run = async () => {
     await mapSettled(bench);
     bench._tasks.clear();
     await forEach(bench);
+    bench._tasks.clear();
+    await filter(bench);
 }
 
 const printResults = (name: string, bench: Bench) => {
