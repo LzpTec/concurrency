@@ -161,10 +161,10 @@ export class Concurrency {
      * TODO DESC
      *
      * @template A
-     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Input<A>} items Arguments to pass to the predicate for each call.
      * @param {number} maxConcurrency
-     * @param {Task<A, void>} predicate The task to run for each item.
-     * @returns {Promise<void>}
+     * @param {Task<A, boolean>} predicate The task to run for each item.
+     * @returns {Promise<A[]>}
      */
     static async filter<A>(items: Input<A>, maxConcurrency: number, predicate: Task<A, boolean>): Promise<A[]> {
         return new Promise<A[]>(async (resolve, reject) => {

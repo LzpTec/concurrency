@@ -207,10 +207,10 @@ export class Batch {
      * TODO DESC
      *
      * @template A
-     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Input<A>} items Arguments to pass to the predicate for each call.
      * @param {number} batchSize
-     * @param {Task<A, void>} predicate The filter method calls the predicate function one time for each element in the array.
-     * @returns {Promise<void>}
+     * @param {Task<A, boolean>} predicate The filter method calls the predicate function one time for each element in the array.
+     * @returns {Promise<A[]>}
      */
     static async filter<A>(items: Input<A>, batchSize: number, predicate: Task<A, boolean>): Promise<A[]> {
         const isAsync = isAsyncIterator(items);

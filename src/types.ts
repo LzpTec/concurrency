@@ -21,6 +21,13 @@ export type Input<A> = AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>;
  */
 export type Job = { task: Function; resolve: Function; reject: Function; };
 
+/**
+ * @template T
+ * @typedef Node
+ * @property {T} data
+ * @property {Node<T> | null} next
+ * @property {Node<T> | null} prev
+ */
 export type Node<T> = {
     data: T;
     next: Node<T> | null;
