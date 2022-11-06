@@ -32,9 +32,7 @@ export class Batch {
         let p = [];
         let done = false;
 
-        do {
-            if (done) break;
-
+        while (!done) {
             const index = idx;
             idx++;
 
@@ -65,12 +63,10 @@ export class Batch {
                 p = [];
             }
 
-        } while (true);
-
-        if (p.length > 0) {
-            await Promise.all(p);
-            p = [];
         }
+
+        if (p.length > 0)
+            await Promise.all(p);
 
         return results;
     }
@@ -101,9 +97,7 @@ export class Batch {
         let p = [];
         let done = false;
 
-        do {
-            if (done) break;
-
+        while (!done) {
             const index = idx;
             idx++;
 
@@ -134,12 +128,10 @@ export class Batch {
                 p = [];
             }
 
-        } while (true);
-
-        if (p.length > 0) {
-            await Promise.all(p);
-            p = [];
         }
+
+        if (p.length > 0)
+            await Promise.all(p);
 
         return results;
     }
@@ -165,9 +157,7 @@ export class Batch {
         let p = [];
         let done = false;
 
-        do {
-            if (done) break;
-
+        while (!done) {
             p
                 .push(
                     new Promise<void>((resolve, reject) =>
@@ -195,12 +185,10 @@ export class Batch {
                 p = [];
             }
 
-        } while (true);
-
-        if (p.length > 0) {
-            await Promise.all(p);
-            p = [];
         }
+
+        if (p.length > 0)
+            await Promise.all(p);
     }
 
     /**
@@ -225,9 +213,7 @@ export class Batch {
         let p = [];
         let done = false;
 
-        do {
-            if (done) break;
-
+        while (!done) {
             p
                 .push(
                     new Promise<void>((resolve, reject) =>
@@ -259,12 +245,10 @@ export class Batch {
                 p = [];
             }
 
-        } while (true);
+        };
 
-        if (p.length > 0) {
+        if (p.length > 0)
             await Promise.all(p);
-            p = [];
-        }
 
         return results;
     }
@@ -290,10 +274,11 @@ export class Batch {
     }
 
     async #run() {
+        await Promise.resolve();
+
         if (this.#currentRunning >= this.#batchSize)
             return;
 
-        await Promise.resolve();
         const jobs = new Array(this.#batchSize);
         while (!this.#queue.isEmpty()) {
             const job = this.#queue.dequeue()!;
@@ -336,10 +321,7 @@ export class Batch {
         let p = [];
         let done = false;
 
-        do {
-            if (done)
-                break;
-
+        while (!done) {
             const index = idx;
             idx++;
 
@@ -368,7 +350,7 @@ export class Batch {
                 await this.#waitEvent.once();
                 p = [];
             }
-        } while (true);
+        };
 
         if (p.length > 0)
             await Promise.all(p);
@@ -400,10 +382,7 @@ export class Batch {
         let p = [];
         let done = false;
 
-        do {
-            if (done)
-                break;
-
+        while (!done) {
             const index = idx;
             idx++;
 
@@ -440,7 +419,7 @@ export class Batch {
                 await this.#waitEvent.once();
                 p = [];
             }
-        } while (true);
+        }
 
         if (p.length > 0)
             await Promise.all(p);
@@ -469,10 +448,7 @@ export class Batch {
         let p = [];
         let done = false;
 
-        do {
-            if (done)
-                break;
-
+        while (!done) {
             p
                 .push(
                     this.#runJob(() => Promise
@@ -499,7 +475,7 @@ export class Batch {
                 await this.#waitEvent.once();
                 p = [];
             }
-        } while (true);
+        }
 
         if (p.length > 0)
             await Promise.all(p);
@@ -526,10 +502,7 @@ export class Batch {
         let p = [];
         let done = false;
 
-        do {
-            if (done)
-                break;
-
+        while (!done) {
             p
                 .push(
                     this.#runJob(() => Promise
@@ -558,7 +531,7 @@ export class Batch {
                 await this.#waitEvent.once();
                 p = [];
             }
-        } while (true);
+        }
 
         if (p.length > 0)
             await Promise.all(p);

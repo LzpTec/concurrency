@@ -268,10 +268,7 @@ export class Concurrency {
         let p = [];
         let done = false;
 
-        do {
-            if (done)
-                break;
-
+        while (!done) {
             const index = idx;
             idx++;
 
@@ -299,7 +296,7 @@ export class Concurrency {
             if (this.#currentRunning >= this.#maxConcurrency)
                 await this.#waitEvent.once();
 
-        } while (true);
+        }
 
         if (p.length > 0)
             await Promise.all(p);
@@ -330,10 +327,7 @@ export class Concurrency {
         let p = [];
         let done = false;
 
-        do {
-            if (done)
-                break;
-
+        while (!done) {
             const index = idx;
             idx++;
 
@@ -368,7 +362,7 @@ export class Concurrency {
             await Promise.resolve();
             if (this.#currentRunning >= this.#maxConcurrency)
                 await this.#waitEvent.once();
-        } while (true);
+        }
 
         if (p.length > 0)
             await Promise.all(p);
@@ -396,10 +390,7 @@ export class Concurrency {
         let p = [];
         let done = false;
 
-        do {
-            if (done)
-                break;
-
+        while (!done) {
             p
                 .push(
                     this.#runJob(() => Promise
@@ -424,7 +415,7 @@ export class Concurrency {
             await Promise.resolve();
             if (this.#currentRunning >= this.#maxConcurrency)
                 await this.#waitEvent.once();
-        } while (true);
+        }
 
         if (p.length > 0)
             await Promise.all(p);
@@ -451,10 +442,7 @@ export class Concurrency {
         let p = [];
         let done = false;
 
-        do {
-            if (done)
-                break;
-
+        while (!done) {
             p
                 .push(
                     this.#runJob(() => Promise
@@ -482,7 +470,7 @@ export class Concurrency {
             if (this.#currentRunning >= this.#maxConcurrency)
                 await this.#waitEvent.once();
 
-        } while (true);
+        }
 
         if (p.length > 0)
             await Promise.all(p);
