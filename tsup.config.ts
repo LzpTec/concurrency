@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    treeshake: true,
+    treeshake: "smallest",
     bundle: true,
     clean: true,
     outDir: 'dist',
@@ -10,5 +10,5 @@ export default defineConfig({
     dts: true,
     minify: true,
     platform: 'neutral',
-    target: 'es2018'
+    target: 'es2017'
 });
