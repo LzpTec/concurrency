@@ -20,12 +20,13 @@ export class Concurrency {
         return new Promise<B[]>(async (resolve, reject) => {
             const isAsync = isAsyncIterator(items);
             const isSync = isIterator(items);
-            const results: B[] = new Array();
 
             if (!isAsync && !isSync)
                 throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
             const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+            const results: B[] = new Array();
+
             let idx = 0;
 
             const wait = new Array(maxConcurrency);
@@ -72,12 +73,13 @@ export class Concurrency {
         return new Promise<PromiseSettledResult<B>[]>(async (resolve, reject) => {
             const isAsync = isAsyncIterator(items);
             const isSync = isIterator(items);
-            const results: PromiseSettledResult<B>[] = new Array();
 
             if (!isAsync && !isSync)
                 throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
             const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+            const results: PromiseSettledResult<B>[] = new Array();
+
             let idx = 0;
 
             const wait = new Array(maxConcurrency);
@@ -170,12 +172,12 @@ export class Concurrency {
         return new Promise<A[]>(async (resolve, reject) => {
             const isAsync = isAsyncIterator(items);
             const isSync = isIterator(items);
-            const results: A[] = new Array();
 
             if (!isAsync && !isSync)
                 throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
             const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+            const results: A[] = new Array();
 
             const wait = new Array(maxConcurrency);
             for (let i = 0; i < maxConcurrency; i++)
@@ -257,14 +259,14 @@ export class Concurrency {
     async map<A, B>(items: A[], task: Task<A, B>): Promise<B[]> {
         const isAsync = isAsyncIterator(items);
         const isSync = isIterator(items);
-        const results: B[] = new Array();
 
         if (!isAsync && !isSync)
             throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
-        let idx = 0;
+        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const results: B[] = new Array();
 
+        let idx = 0;
         let p = [];
         let done = false;
 
@@ -316,14 +318,14 @@ export class Concurrency {
     async mapSettled<A, B>(items: A[], task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
         const isAsync = isAsyncIterator(items);
         const isSync = isIterator(items);
-        const results: PromiseSettledResult<B>[] = new Array();
 
         if (!isAsync && !isSync)
             throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
-        let idx = 0;
+        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const results: PromiseSettledResult<B>[] = new Array();
 
+        let idx = 0;
         let p = [];
         let done = false;
 
@@ -385,7 +387,7 @@ export class Concurrency {
         if (!isAsync && !isSync)
             throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
 
         let p = [];
         let done = false;
@@ -432,12 +434,12 @@ export class Concurrency {
     async filter<A>(items: Input<A>, predicate: Task<A, boolean>): Promise<A[]> {
         const isAsync = isAsyncIterator(items);
         const isSync = isIterator(items);
-        const results: A[] = new Array();
 
         if (!isAsync && !isSync)
             throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        let iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const results: A[] = new Array();
 
         let p = [];
         let done = false;
