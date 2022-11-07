@@ -9,8 +9,8 @@ export class Queue<T> {
     }
 
     public enqueue(item: T): void {
-        if (item === null || item === undefined)
-            throw new TypeError(`Missing type ${typeof item}`);
+        // if (item === null || item === undefined)
+        //     throw new TypeError(`Missing type ${typeof item}`);
 
         const node: Node<T> = {
             data: item,
