@@ -7,24 +7,23 @@ const JOB_DONE = Symbol(`JobDone`);
 
 export class Batch {
     /**
-     * Same as Promise.all(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * Same as Promise.all, but it waits for the first `batchSize` promises to finish before starting the next batch.
      *
      * @template A
      * @template B
-     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {number} batchSize
      * @param {Task<A, B>} task The task to run for each item.
      * @returns {Promise<B[]>}
      */
-    static async map<A, B>(items: Input<A>, batchSize: number, task: Task<A, B>): Promise<B[]> {
-        const isAsync = isAsyncIterator(items);
-        const isSync = isIterator(items);
+    static async map<A, B>(input: Input<A>, batchSize: number, task: Task<A, B>): Promise<B[]> {
+        const isAsync = isAsyncIterator(input);
+        const isSync = isIterator(input);
 
         if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: B[] = new Array();
 
         let idx = 0;
@@ -70,24 +69,23 @@ export class Batch {
     }
 
     /**
-     * Same as Promise.allSettled(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * Same as Promise.allSettled, but it waits for the first `batchSize` promises to finish before starting the next batch.
      *
      * @template A
      * @template B
-     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {number} batchSize
      * @param {Task<A, B>} task The task to run for each item.
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
-    static async mapSettled<A, B>(items: Input<A>, batchSize: number, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const isAsync = isAsyncIterator(items);
-        const isSync = isIterator(items);
+    static async mapSettled<A, B>(input: Input<A>, batchSize: number, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+        const isAsync = isAsyncIterator(input);
+        const isSync = isIterator(input);
 
         if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: PromiseSettledResult<B>[] = new Array();
 
         let idx = 0;
@@ -133,23 +131,22 @@ export class Batch {
     }
 
     /**
-     * Same as Promise.all(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * Performs the specified task for each element in the input.
      *
      * @template A
-     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {number} batchSize
      * @param {Task<A, void>} task The task to run for each item.
      * @returns {Promise<void>}
      */
-    static async forEach<A>(items: Input<A>, batchSize: number, task: Task<A, void>): Promise<void> {
-        const isAsync = isAsyncIterator(items);
-        const isSync = isIterator(items);
+    static async forEach<A>(input: Input<A>, batchSize: number, task: Task<A, void>): Promise<void> {
+        const isAsync = isAsyncIterator(input);
+        const isSync = isIterator(input);
 
         if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
 
         let p = [];
         let done = false;
@@ -188,22 +185,22 @@ export class Batch {
     }
 
     /**
-     * TODO DESC
+     * Returns the elements that meet the condition specified in the predicate function.
      *
      * @template A
-     * @param {Input<A>} items Arguments to pass to the predicate for each call.
+     * @param {Input<A>} input Arguments to pass to the predicate for each call.
      * @param {number} batchSize
      * @param {Task<A, boolean>} predicate The filter method calls the predicate function one time for each element in the array.
      * @returns {Promise<A[]>}
      */
-    static async filter<A>(items: Input<A>, batchSize: number, predicate: Task<A, boolean>): Promise<A[]> {
-        const isAsync = isAsyncIterator(items);
-        const isSync = isIterator(items);
+    static async filter<A>(input: Input<A>, batchSize: number, predicate: Task<A, boolean>): Promise<A[]> {
+        const isAsync = isAsyncIterator(input);
+        const isSync = isIterator(input);
 
         if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: A[] = new Array();
 
         let p = [];
@@ -293,23 +290,22 @@ export class Batch {
     }
 
     /**
-     * Same as Promise.all(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * Same as Promise.all, but it waits for the first `batchSize` promises to finish before starting the next batch.
      *
      * @template A
      * @template B
-     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {Task<A, B>} task The task to run for each item.
      * @returns {Promise<B[]>}
      */
-    async map<A, B>(items: Input<A>, task: Task<A, B>): Promise<B[]> {
-        const isAsync = isAsyncIterator(items);
-        const isSync = isIterator(items);
+    async map<A, B>(input: Input<A>, task: Task<A, B>): Promise<B[]> {
+        const isAsync = isAsyncIterator(input);
+        const isSync = isIterator(input);
 
         if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: B[] = new Array();
 
         let idx = 0;
@@ -354,23 +350,22 @@ export class Batch {
     }
 
     /**
-     * Same as Promise.allSettled(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * Same as Promise.allSettled, but it waits for the first `batchSize` promises to finish before starting the next batch.
      *
      * @template A
      * @template B
-     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {Task<A, B>} task The task to run for each item.
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
-    async mapSettled<A, B>(items: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const isAsync = isAsyncIterator(items);
-        const isSync = isIterator(items);
+    async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+        const isAsync = isAsyncIterator(input);
+        const isSync = isIterator(input);
 
         if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: PromiseSettledResult<B>[] = new Array();
 
         let idx = 0;
@@ -423,22 +418,21 @@ export class Batch {
     }
 
     /**
-     * Same as Promise.all(items.map(item => task(item))), but it waits for
-     * the first {batchSize} promises to finish before starting the next batch.
+     * Performs the specified task for each element in the input.
      *
      * @template A
-     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {Task<A, void>} task The task to run for each item.
      * @returns {Promise<void>}
      */
-    async forEach<A>(items: Input<A>, task: Task<A, void>): Promise<void> {
-        const isAsync = isAsyncIterator(items);
-        const isSync = isIterator(items);
+    async forEach<A>(input: Input<A>, task: Task<A, void>): Promise<void> {
+        const isAsync = isAsyncIterator(input);
+        const isSync = isIterator(input);
 
         if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
 
         let p = [];
         let done = false;
@@ -477,21 +471,21 @@ export class Batch {
     }
 
     /**
-     * TODO DESC
+     * Returns the elements that meet the condition specified in the predicate function.
      *
      * @template A
-     * @param {Input<A>} items Arguments to pass to the task for each call.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {Task<A, boolean>} predicate The filter method calls the predicate function one time for each element in the array.
      * @returns {Promise<void>}
      */
-    async filter<A>(items: Input<A>, predicate: Task<A, boolean>): Promise<A[]> {
-        const isAsync = isAsyncIterator(items);
-        const isSync = isIterator(items);
+    async filter<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<A[]> {
+        const isAsync = isAsyncIterator(input);
+        const isSync = isIterator(input);
 
         if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof items + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        const iterator = isAsync ? items[Symbol.asyncIterator]() : items[Symbol.iterator]();
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: A[] = new Array();
 
         let p = [];

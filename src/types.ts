@@ -25,11 +25,11 @@ export type Job = { task: Function; resolve: Function; reject: Function; };
  * @template T
  * @typedef Node
  * @property {T} data
- * @property {Node<T> | null} next
- * @property {Node<T> | null} prev
+ * @property {Node<T>} [next]
+ * @property {Node<T>} [prev]
  */
 export type Node<T> = {
     data: T;
-    next: Node<T> | null;
-    prev: Node<T> | null;
+    next?: Node<T>;
+    prev?: Node<T>;
 };

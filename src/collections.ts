@@ -1,21 +1,14 @@
 import type { Node } from './types';
 
 export class Queue<T> {
-    private head: Node<T> | null = null;
-    private tail: Node<T> | null = null;
-
-    constructor(input?: T[]) {
-        input?.forEach((element: T) => this.enqueue(element as T));
-    }
+    private head?: Node<T>;
+    private tail?: Node<T>;
 
     public enqueue(item: T): void {
-        // if (item === null || item === undefined)
-        //     throw new TypeError(`Missing type ${typeof item}`);
-
         const node: Node<T> = {
             data: item,
-            next: null,
-            prev: null,
+            next: void 0,
+            prev: this.tail,
         };
 
         if (this.isEmpty()) {
@@ -23,28 +16,25 @@ export class Queue<T> {
             return;
         }
 
-        if (this.tail) {
+        if (this.tail)
             this.tail.next = node;
-            if (this.tail.next)
-                this.tail.next.prev = this.tail;
-        }
 
-        this.tail = this.tail?.next ?? null;
+        this.tail = this.tail?.next;
     }
 
     public dequeue(): T | undefined {
         if (!this.head)
-            return undefined;
+            return void 0;
 
         const deleted: T = this.head.data;
         this.head = this.head.next;
         if (this.head) {
             if (this.head.prev)
-                this.head.prev.next = null;
+                this.head.prev.next = void 0;
 
-            this.head.prev = null;
+            this.head.prev = void 0;
         } else {
-            this.tail = null;
+            this.tail = void 0;
         }
         return deleted;
     }
@@ -54,7 +44,7 @@ export class Queue<T> {
     }
 
     public clear(): void {
-        this.head = null;
-        this.tail = null;
+        this.head = void 0;
+        this.tail = void 0;
     }
 }

@@ -77,16 +77,16 @@ B: Task Output
 
 ## Batch
 
-### map\<A, B\>(items, batchSize*, task)
+### map\<A, B\>(input, batchSize*, task)
 Returns: `Promise<B>`
 
-Same as Promise.all(items.map(item => task(item))), but it waits for the first `batchSize` promises to finish before starting the next batch.
+Same as Promise.all(input.map(item => task(item))), but it waits for the first `batchSize` promises to finish before starting the next batch.
 
 \* Only required in Global
 
-#### items
+#### input
 **Required**<br>
-Type: `A[]`<br>
+Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
 
@@ -103,16 +103,16 @@ Type: `Task<A, B>`<br>
 
 The task to run for each item.
 
-### mapSettled\<A, B\>(items, batchSize*, task)
+### mapSettled\<A, B\>(input, batchSize*, task)
 Returns: `Promise<PromiseSettledResult<B>>`
 
-Same as Promise.allSettled(items.map(item => task(item))), but it waits for the first `batchSize` promises to finish before starting the next batch.
+Same as Promise.allSettled(input.map(item => task(item))), but it waits for the first `batchSize` promises to finish before starting the next batch.
 
 \* Only required in Global
 
-#### items
+#### input
 **Required**<br>
-Type: `A[]`<br>
+Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
 
@@ -129,7 +129,7 @@ Type: `Task<A, B>`<br>
 
 The task to run for each item.
 
-### forEach\<A\>(items, batchSize*, task)
+### forEach\<A\>(input, batchSize*, task)
 
 Returns: `Promise<void>`
 
@@ -137,9 +137,9 @@ Same as Batch.map, But it doesn't return the results
 
 \* Only required in Global
 
-#### items
+#### input
 **Required**<br>
-Type: `A[]`<br>
+Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
 
@@ -159,16 +159,16 @@ The task to run for each item.
 
 ## Concurrency
 
-### map\<A, B\>(items, maxConcurrency*, task)
+### map\<A, B\>(input, maxConcurrency*, task)
 Returns: `Promise<B>`
 
-Same as Promise.all(items.map(item => task(item))), but it limits the concurrent execution to `maxConcurrency`.
+Same as Promise.all(input.map(item => task(item))), but it limits the concurrent execution to `maxConcurrency`.
 
 \* Only required in Global
 
-#### items
+#### input
 **Required**<br>
-Type: `A[]`<br>
+Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
 
@@ -185,16 +185,16 @@ Type: `Task<A, B>`<br>
 
 The task to run for each item.
 
-### mapSettled\<A, B\>(items, maxConcurrency*, task)
+### mapSettled\<A, B\>(input, maxConcurrency*, task)
 Returns: `Promise<PromiseSettledResult<B>>`
 
-Same as Promise.allSettled(items.map(item => task(item))), but it limits the concurrent execution to `maxConcurrency`.
+Same as Promise.allSettled(input.map(item => task(item))), but it limits the concurrent execution to `maxConcurrency`.
 
 \* Only required in Global
 
-#### items
+#### input
 **Required**<br>
-Type: `A[]`<br>
+Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
 
@@ -211,7 +211,7 @@ Type: `Task<A, B>`<br>
 
 The task to run for each item.
 
-### forEach\<A\>(items, maxConcurrency*, task)
+### forEach\<A\>(input, maxConcurrency*, task)
 
 Returns: `Promise<void>`
 
@@ -219,9 +219,9 @@ Same as Batch.map, But it doesn't return the results
 
 \* Only required in Global
 
-#### items
+#### input
 **Required**<br>
-Type: `A[]`<br>
+Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
 
