@@ -1,7 +1,7 @@
 import { Queue } from './collections';
 import { Event } from './event-emitter';
 import { isAsyncIterator, isIterator } from './guards';
-import type { Input, Job, Task } from './types';
+import type { Input, Job, RunnableTask, Task } from './types';
 
 const JOB_DONE = Symbol(`JobDone`);
 
@@ -17,7 +17,7 @@ export class Concurrency {
      * @returns {Promise<B[]>}
      */
     static async map<A, B>(input: Input<A>, maxConcurrency: number, task: Task<A, B>): Promise<B[]> {
-        return new Promise<B[]>(async (resolve, reject) => {
+        return new Promise<B[]>((resolve, reject) => {
             const isAsync = isAsyncIterator(input);
             const isSync = isIterator(input);
 
@@ -52,7 +52,7 @@ export class Concurrency {
                     }
                 );
 
-            await Promise
+            Promise
                 .all(wait)
                 .then(() => resolve(results))
                 .catch(err => reject(err));
@@ -70,7 +70,7 @@ export class Concurrency {
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
     static async mapSettled<A, B>(input: Input<A>, maxConcurrency: number, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        return new Promise<PromiseSettledResult<B>[]>(async (resolve, reject) => {
+        return new Promise<PromiseSettledResult<B>[]>((resolve, reject) => {
             const isAsync = isAsyncIterator(input);
             const isSync = isIterator(input);
 
@@ -110,7 +110,7 @@ export class Concurrency {
                     }
                 );
 
-            await Promise
+            Promise
                 .all(wait)
                 .then(() => resolve(results))
                 .catch(err => reject(err));
@@ -127,36 +127,40 @@ export class Concurrency {
      * @returns {Promise<void>}
      */
     static async forEach<A>(input: Input<A>, maxConcurrency: number, task: Task<A, void>): Promise<void> {
-        const isAsync = isAsyncIterator(input);
-        const isSync = isIterator(input);
+        return new Promise<void>((resolve, reject) => {
+            const isAsync = isAsyncIterator(input);
+            const isSync = isIterator(input);
 
-        if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+            if (!isAsync && !isSync)
+                throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+            const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
 
-        const wait = new Array(maxConcurrency);
-        for (let i = 0; i < maxConcurrency; i++)
-            wait[i] = new Promise<void>(
-                async (resolve, reject) => {
-                    try {
-                        do {
-                            const item = await iterator.next();
-                            if (item.done) break;
+            const wait = new Array(maxConcurrency);
+            for (let i = 0; i < maxConcurrency; i++)
+                wait[i] = new Promise<void>(
+                    async (resolve, reject) => {
+                        try {
+                            do {
+                                const item = await iterator.next();
+                                if (item.done) break;
 
-                            await task(await item.value);
-                        } while (true);
+                                await task(await item.value);
+                            } while (true);
 
-                        resolve();
-                    } catch (err) {
-                        reject(err);
-                        return;
+                            resolve();
+                        } catch (err) {
+                            reject(err);
+                            return;
+                        }
                     }
-                }
-            );
+                );
 
-        await Promise
-            .all(wait);
+            Promise
+                .all(wait)
+                .then(() => resolve())
+                .catch(err => reject(err));
+        });
     }
 
     /**
@@ -169,7 +173,7 @@ export class Concurrency {
      * @returns {Promise<A[]>}
      */
     static async filter<A>(input: Input<A>, maxConcurrency: number, predicate: Task<A, boolean>): Promise<A[]> {
-        return new Promise<A[]>(async (resolve, reject) => {
+        return new Promise<A[]>((resolve, reject) => {
             const isAsync = isAsyncIterator(input);
             const isSync = isIterator(input);
 
@@ -202,7 +206,7 @@ export class Concurrency {
                     }
                 );
 
-            await Promise
+            Promise
                 .all(wait)
                 .then(() => resolve(results))
                 .catch(err => reject(err));
@@ -230,21 +234,24 @@ export class Concurrency {
     }
 
     async #run() {
+        await Promise.resolve();
+
         if (this.#currentRunning >= this.#maxConcurrency)
             return;
 
-        this.#currentRunning++;
         while (!this.#queue.isEmpty()) {
             const job = this.#queue.dequeue()!;
+
+            this.#currentRunning++;
 
             await Promise.resolve(job.task())
                 .then(res => { job.resolve(res); })
                 .catch(err => { job.reject(err); });
 
+            this.#currentRunning--;
             this.#waitEvent.emit();
             await Promise.resolve();
         }
-        this.#currentRunning--;
     }
 
     /**
@@ -287,9 +294,7 @@ export class Concurrency {
                         })
                         .then(async res => {
                             if (res !== JOB_DONE)
-                                results[index] = await Promise.resolve(task(res!));
-
-                            return;
+                                results[index] = await task(res!);
                         })
                     )
                 );
@@ -297,7 +302,6 @@ export class Concurrency {
             await Promise.resolve();
             if (this.#currentRunning >= this.#maxConcurrency)
                 await this.#waitEvent.once();
-
         }
 
         if (p.length > 0)
@@ -350,7 +354,7 @@ export class Concurrency {
                             if (res !== JOB_DONE)
                                 results[index] = {
                                     status: 'fulfilled',
-                                    value: await Promise.resolve(task(res!))
+                                    value: await task(res!)
                                 };
 
                             return;
@@ -408,9 +412,7 @@ export class Concurrency {
                         })
                         .then(async res => {
                             if (res !== JOB_DONE)
-                                await Promise.resolve(task(res!));
-
-                            return;
+                                await task(res!);
                         })
                         .catch(err => { throw err; })
                     )
@@ -460,12 +462,10 @@ export class Concurrency {
                         })
                         .then(async res => {
                             if (res !== JOB_DONE) {
-                                const filter = await Promise.resolve(predicate(res!))
+                                const filter = await predicate(res!);
                                 if (filter)
                                     results.push(res);
                             }
-
-                            return;
                         })
                     )
                 );
@@ -480,6 +480,19 @@ export class Concurrency {
             await Promise.all(p);
 
         return results;
+    }
+
+    /**
+     * Performs a specified task.
+     *
+     * @template A
+     * @template B
+     * @param {RunnableTask<A, B>} task Arguments to pass to the task for each call.
+     * @param {A[]} [args] The task to run for each item.
+     * @returns {Promise<B>}
+     */
+    async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
+        return await this.#runJob(() => Promise.resolve(task(...args)));
     }
 
     set maxConcurrency(value: number) {

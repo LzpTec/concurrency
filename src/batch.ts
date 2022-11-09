@@ -1,7 +1,7 @@
 import { Queue } from './collections';
 import { Event } from './event-emitter';
 import { isAsyncIterator, isIterator } from './guards';
-import type { Input, Job, Task } from './types';
+import type { Input, Job, RunnableTask, Task } from './types';
 
 const JOB_DONE = Symbol(`JobDone`);
 
@@ -36,24 +36,19 @@ export class Batch {
 
             p
                 .push(
-                    new Promise<void>((resolve, reject) =>
-                        Promise
-                            .resolve(iterator.next())
-                            .then(res => {
-                                if (!res.done)
-                                    return res.value;
+                    Promise
+                        .resolve(iterator.next())
+                        .then(res => {
+                            if (!res.done)
+                                return res.value;
 
-                                done = true;
-                                return JOB_DONE;
-                            })
-                            .then(async res => {
-                                if (res !== JOB_DONE)
-                                    results[index] = await Promise.resolve(task(res!));
-
-                                resolve();
-                            })
-                            .catch(err => reject(err))
-                    )
+                            done = true;
+                            return JOB_DONE;
+                        })
+                        .then(async res => {
+                            if (res !== JOB_DONE)
+                                results[index] = await task(res!);
+                        })
                 );
 
             if (p.length >= batchSize) {
@@ -98,24 +93,21 @@ export class Batch {
 
             p
                 .push(
-                    new Promise<void>((resolve) =>
-                        Promise
-                            .resolve(iterator.next())
-                            .then(res => {
-                                if (!res.done)
-                                    return res.value;
+                    Promise
+                        .resolve(iterator.next())
+                        .then(res => {
+                            if (!res.done)
+                                return res.value;
 
-                                done = true;
-                                return JOB_DONE;
-                            })
-                            .then(async res => {
-                                if (res !== JOB_DONE)
-                                    results[index] = { status: 'fulfilled', value: await Promise.resolve(task(res!)) };
+                            done = true;
+                            return JOB_DONE;
+                        })
+                        .then(async res => {
+                            if (res !== JOB_DONE)
+                                results[index] = { status: 'fulfilled', value: await task(res!) };
+                        })
+                        .catch(err => { results[index] = { status: 'rejected', reason: err } })
 
-                                resolve();
-                            })
-                            .catch(err => { results[index] = { status: 'rejected', reason: err } })
-                    )
                 );
 
             if (p.length >= batchSize) {
@@ -154,24 +146,19 @@ export class Batch {
         while (!done) {
             p
                 .push(
-                    new Promise<void>((resolve, reject) =>
-                        Promise
-                            .resolve(iterator.next())
-                            .then(res => {
-                                if (!res.done)
-                                    return res.value;
+                    Promise
+                        .resolve(iterator.next())
+                        .then(res => {
+                            if (!res.done)
+                                return res.value;
 
-                                done = true;
-                                return JOB_DONE;
-                            })
-                            .then(async res => {
-                                if (res !== JOB_DONE)
-                                    await Promise.resolve(task(res!));
-
-                                resolve();
-                            })
-                            .catch(err => reject(err))
-                    )
+                            done = true;
+                            return JOB_DONE;
+                        })
+                        .then(async res => {
+                            if (res !== JOB_DONE)
+                                await task(res!);
+                        })
                 );
 
             if (p.length >= batchSize) {
@@ -209,28 +196,23 @@ export class Batch {
         while (!done) {
             p
                 .push(
-                    new Promise<void>((resolve, reject) =>
-                        Promise
-                            .resolve(iterator.next())
-                            .then(res => {
-                                if (!res.done)
-                                    return res.value;
+                    Promise
+                        .resolve(iterator.next())
+                        .then(res => {
+                            if (!res.done)
+                                return res.value;
 
-                                done = true;
-                                return JOB_DONE;
-                            })
-                            .then(async res => {
-                                if (res !== JOB_DONE) {
-                                    const filter = await Promise.resolve(predicate(res!));
+                            done = true;
+                            return JOB_DONE;
+                        })
+                        .then(async res => {
+                            if (res !== JOB_DONE) {
+                                const filter = await predicate(res!);
 
-                                    if (filter)
-                                        results.push(res);
-                                }
-
-                                resolve();
-                            })
-                            .catch(err => reject(err))
-                    )
+                                if (filter)
+                                    results.push(res);
+                            }
+                        })
                 );
 
             if (p.length >= batchSize) {
@@ -271,7 +253,7 @@ export class Batch {
         if (this.#currentRunning >= this.#batchSize)
             return;
 
-        const jobs = new Array(this.#batchSize);
+        const jobs = new Array();
         while (!this.#queue.isEmpty()) {
             const job = this.#queue.dequeue()!;
 
@@ -312,7 +294,11 @@ export class Batch {
         let p = [];
         let done = false;
 
+        let error: any;
         while (!done) {
+            if (error)
+                throw error;
+
             const index = idx;
             idx++;
 
@@ -330,9 +316,8 @@ export class Batch {
                         .then(async res => {
                             if (res !== JOB_DONE)
                                 results[index] = await Promise.resolve(task(res!));
-
-                            return;
                         })
+                        .catch(err => error = err)
                     )
                 );
 
@@ -393,9 +378,8 @@ export class Batch {
                                     status: 'fulfilled',
                                     value: await Promise.resolve(task(res!))
                                 };
-
-                            return;
-                        }).catch(err => {
+                        })
+                        .catch(err => {
                             results[index] = {
                                 status: 'rejected',
                                 reason: err
@@ -437,7 +421,11 @@ export class Batch {
         let p = [];
         let done = false;
 
+        let error: any;
         while (!done) {
+            if (error)
+                throw error;
+
             p
                 .push(
                     this.#runJob(() => Promise
@@ -452,10 +440,8 @@ export class Batch {
                         .then(async res => {
                             if (res !== JOB_DONE)
                                 await Promise.resolve(task(res!));
-
-                            return;
                         })
-                        .catch(err => { throw err; })
+                        .catch(err => error = err)
                     )
                 );
 
@@ -491,7 +477,11 @@ export class Batch {
         let p = [];
         let done = false;
 
+        let error: any;
         while (!done) {
+            if (error)
+                throw error;
+
             p
                 .push(
                     this.#runJob(() => Promise
@@ -509,9 +499,8 @@ export class Batch {
                                 if (filter)
                                     results.push(res);
                             }
-
-                            return;
                         })
+                        .catch(err => error = err)
                     )
                 );
 
@@ -526,6 +515,19 @@ export class Batch {
             await Promise.all(p);
 
         return results;
+    }
+
+    /**
+     * Performs a specified task.
+     *
+     * @template A
+     * @template B
+     * @param {RunnableTask<A, B>} task Arguments to pass to the task for each call.
+     * @param {A[]} [args] The task to run for each item.
+     * @returns {Promise<B>}
+     */
+    async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
+        return await this.#runJob(() => Promise.resolve(task(...args)));
     }
 
     set batchSize(value: number) {

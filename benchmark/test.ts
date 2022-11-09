@@ -1,6 +1,6 @@
 import { Batch, Concurrency } from '@lzptec/concurrency';
 
-const data = Array.from({ length: 20 }, (_, idx) => idx);
+const data = Array.from({ length: 15 }, (_, idx) => idx);
 Batch;
 Concurrency;
 
@@ -11,32 +11,32 @@ const run = async () => {
     const batchInstance = new Batch(4);
     const concurrencyInstance = new Concurrency(4);
 
-    const mapSharedBatch = {
-        'BatchInstance.map 4': await Promise.all([
-            batchInstance.map(data, async (item) => new Promise((resolve) => {
-                console.log(`BatchInstance.map ${idx++} - Item ${item}`)
-                setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
-            })),
-            batchInstance.map(data, async (item) => new Promise((resolve) => {
-                console.log(`BatchInstance.map ${idx++} - Item ${item}`)
-                setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
-            }))
-        ]),
-        _0: (() => { idx = 0; globalThis.gc?.(); })(),
+    // const mapSharedBatch = {
+    //     'BatchInstance.map 4': await Promise.all([
+    //         batchInstance.map(data, async (item) => new Promise((resolve) => {
+    //             console.log(`BatchInstance.map ${idx++} - Item ${item}`)
+    //             setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
+    //         })),
+    //         batchInstance.map(data, async (item) => new Promise((resolve) => {
+    //             console.log(`BatchInstance.map ${idx++} - Item ${item}`)
+    //             setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
+    //         }))
+    //     ]),
+    //     _0: (() => { idx = 0; globalThis.gc?.(); })(),
 
-        'ConcurrencyInstance.map 4': await Promise.all([
-            concurrencyInstance.map(data, async (item) => new Promise((resolve) => {
-                console.log(`ConcurrencyInstance.map ${idx++} - Item ${item}`)
-                setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
-            })),
-            concurrencyInstance.map(data, async (item) => new Promise((resolve) => {
-                console.log(`ConcurrencyInstance.map ${idx++} - Item ${item}`)
-                setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
-            }))
-        ]),
-        _1: (() => { idx = 0; globalThis.gc?.(); })(),
-    }
-    mapSharedBatch;
+    //     'ConcurrencyInstance.map 4': await Promise.all([
+    //         concurrencyInstance.map(data, async (item) => new Promise((resolve) => {
+    //             console.log(`ConcurrencyInstance.map ${idx++} - Item ${item}`)
+    //             setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
+    //         })),
+    //         concurrencyInstance.map(data, async (item) => new Promise((resolve) => {
+    //             console.log(`ConcurrencyInstance.map ${idx++} - Item ${item}`)
+    //             setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
+    //         }))
+    //     ]),
+    //     _1: (() => { idx = 0; globalThis.gc?.(); })(),
+    // }
+    // mapSharedBatch;
 
     const map = {
         'Batch.map 4': await Batch.map(data, 4, async (item) => new Promise((resolve) => {

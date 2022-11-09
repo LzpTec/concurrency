@@ -2,6 +2,15 @@
  * @template A
  * @template B
  * @callback Task
+ * @param {A[]} args
+ * @returns {Promise<B> | B}
+ */
+export type RunnableTask<A, B> = (...args: A[]) => Promise<B> | B;
+
+/**
+ * @template A
+ * @template B
+ * @callback Task
  * @param {A} item
  * @returns {Promise<B> | B}
  */
