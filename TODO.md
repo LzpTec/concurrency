@@ -3,5 +3,5 @@
 ## 0.1.0
 
 - [x] Add run method.
-- [ ] Improve performance.
-- [ ] Improve Project Struct.
+- [x] Improve performance.
+- [x] Improve Project Struct.

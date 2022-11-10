@@ -293,8 +293,10 @@ export class Concurrency {
                             return JOB_DONE;
                         })
                         .then(async res => {
-                            if (res !== JOB_DONE)
-                                results[index] = await task(res!);
+                            if (res === JOB_DONE)
+                                return;
+
+                            results[index] = await task(res);
                         })
                     )
                 );
@@ -323,8 +325,6 @@ export class Concurrency {
         const isAsync = isAsyncIterator(input);
         const isSync = isIterator(input);
 
-        Promise.allSettled
-
         if (!isAsync && !isSync)
             throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
@@ -351,14 +351,15 @@ export class Concurrency {
                             return JOB_DONE;
                         })
                         .then(async res => {
-                            if (res !== JOB_DONE)
-                                results[index] = {
-                                    status: 'fulfilled',
-                                    value: await task(res!)
-                                };
+                            if (res === JOB_DONE)
+                                return;
 
-                            return;
-                        }).catch(err => {
+                            results[index] = {
+                                status: 'fulfilled',
+                                value: await task(res)
+                            };
+                        })
+                        .catch(err => {
                             results[index] = {
                                 status: 'rejected',
                                 reason: err
@@ -411,8 +412,10 @@ export class Concurrency {
                             return JOB_DONE;
                         })
                         .then(async res => {
-                            if (res !== JOB_DONE)
-                                await task(res!);
+                            if (res === JOB_DONE)
+                                return;
+
+                            await task(res);
                         })
                         .catch(err => { throw err; })
                     )
@@ -461,11 +464,12 @@ export class Concurrency {
                             return JOB_DONE;
                         })
                         .then(async res => {
-                            if (res !== JOB_DONE) {
-                                const filter = await predicate(res!);
-                                if (filter)
-                                    results.push(res);
-                            }
+                            if (res === JOB_DONE)
+                                return;
+
+                            const filter = await predicate(res);
+                            if (filter)
+                                results.push(res);
                         })
                     )
                 );

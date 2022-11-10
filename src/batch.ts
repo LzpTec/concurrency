@@ -25,40 +25,35 @@ export class Batch {
 
         const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: B[] = new Array();
+        const wait = new Array(batchSize);
 
         let idx = 0;
-        let p = [];
         let done = false;
-
         while (!done) {
-            const index = idx;
-            idx++;
+            for (let i = 0; i < batchSize; i++) {
+                const index = idx;
+                idx++;
 
-            p
-                .push(
-                    Promise
-                        .resolve(iterator.next())
-                        .then(res => {
-                            if (!res.done)
-                                return res.value;
+                wait[i] = Promise
+                    .resolve(iterator.next())
+                    .then(res => {
+                        if (!res.done)
+                            return res.value;
 
-                            done = true;
-                            return JOB_DONE;
-                        })
-                        .then(async res => {
-                            if (res !== JOB_DONE)
-                                results[index] = await task(res!);
-                        })
-                );
+                        done = true;
+                        return JOB_DONE;
+                    })
+                    .then(async res => {
+                        if (res === JOB_DONE)
+                            return;
 
-            if (p.length >= batchSize) {
-                await Promise.all(p);
-                p = [];
+                        results[index] = await task(res);
+                    });
             }
-        }
 
-        if (p.length > 0)
-            await Promise.all(p);
+            await Promise
+                .all(wait);
+        }
 
         return results;
     }
@@ -82,42 +77,36 @@ export class Batch {
 
         const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: PromiseSettledResult<B>[] = new Array();
+        const wait = new Array(batchSize);
 
         let idx = 0;
-        let p = [];
         let done = false;
-
         while (!done) {
-            const index = idx;
-            idx++;
+            for (let i = 0; i < batchSize; i++) {
+                const index = idx;
+                idx++;
 
-            p
-                .push(
-                    Promise
-                        .resolve(iterator.next())
-                        .then(res => {
-                            if (!res.done)
-                                return res.value;
+                wait[i] = Promise
+                    .resolve(iterator.next())
+                    .then(res => {
+                        if (!res.done)
+                            return res.value;
 
-                            done = true;
-                            return JOB_DONE;
-                        })
-                        .then(async res => {
-                            if (res !== JOB_DONE)
-                                results[index] = { status: 'fulfilled', value: await task(res!) };
-                        })
-                        .catch(err => { results[index] = { status: 'rejected', reason: err } })
+                        done = true;
+                        return JOB_DONE;
+                    })
+                    .then(async res => {
+                        if (res === JOB_DONE)
+                            return;
 
-                );
-
-            if (p.length >= batchSize) {
-                await Promise.all(p);
-                p = [];
+                        results[index] = { status: 'fulfilled', value: await task(res) };
+                    })
+                    .catch(err => { results[index] = { status: 'rejected', reason: err } })
             }
-        }
 
-        if (p.length > 0)
-            await Promise.all(p);
+            await Promise
+                .all(wait);
+        }
 
         return results;
     }
@@ -139,36 +128,32 @@ export class Batch {
             throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
         const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+        const wait = new Array(batchSize);
 
-        let p = [];
         let done = false;
-
         while (!done) {
-            p
-                .push(
-                    Promise
-                        .resolve(iterator.next())
-                        .then(res => {
-                            if (!res.done)
-                                return res.value;
+            for (let i = 0; i < batchSize; i++) {
 
-                            done = true;
-                            return JOB_DONE;
-                        })
-                        .then(async res => {
-                            if (res !== JOB_DONE)
-                                await task(res!);
-                        })
-                );
+                wait[i] = Promise
+                    .resolve(iterator.next())
+                    .then(res => {
+                        if (!res.done)
+                            return res.value;
 
-            if (p.length >= batchSize) {
-                await Promise.all(p);
-                p = [];
+                        done = true;
+                        return JOB_DONE;
+                    })
+                    .then(async res => {
+                        if (res === JOB_DONE)
+                            return;
+
+                        await task(res);
+                    });
             }
-        }
 
-        if (p.length > 0)
-            await Promise.all(p);
+            await Promise
+                .all(wait);
+        }
     }
 
     /**
@@ -189,40 +174,34 @@ export class Batch {
 
         const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: A[] = new Array();
+        const wait = new Array(batchSize);
 
-        let p = [];
         let done = false;
-
         while (!done) {
-            p
-                .push(
-                    Promise
-                        .resolve(iterator.next())
-                        .then(res => {
-                            if (!res.done)
-                                return res.value;
+            for (let i = 0; i < batchSize; i++) {
+                wait[i] = Promise
+                    .resolve(iterator.next())
+                    .then(res => {
+                        if (!res.done)
+                            return res.value;
 
-                            done = true;
-                            return JOB_DONE;
-                        })
-                        .then(async res => {
-                            if (res !== JOB_DONE) {
-                                const filter = await predicate(res!);
+                        done = true;
+                        return JOB_DONE;
+                    })
+                    .then(async res => {
+                        if (res === JOB_DONE)
+                            return;
 
-                                if (filter)
-                                    results.push(res);
-                            }
-                        })
-                );
+                        const filter = await predicate(res);
 
-            if (p.length >= batchSize) {
-                await Promise.all(p);
-                p = [];
+                        if (filter)
+                            results.push(res);
+                    });
             }
-        }
 
-        if (p.length > 0)
-            await Promise.all(p);
+            await Promise
+                .all(wait);
+        }
 
         return results;
     }
@@ -315,7 +294,7 @@ export class Batch {
                         })
                         .then(async res => {
                             if (res !== JOB_DONE)
-                                results[index] = await Promise.resolve(task(res!));
+                                results[index] = await task(res);
                         })
                         .catch(err => error = err)
                     )
@@ -376,7 +355,7 @@ export class Batch {
                             if (res !== JOB_DONE)
                                 results[index] = {
                                     status: 'fulfilled',
-                                    value: await Promise.resolve(task(res!))
+                                    value: await task(res)
                                 };
                         })
                         .catch(err => {
@@ -439,7 +418,7 @@ export class Batch {
                         })
                         .then(async res => {
                             if (res !== JOB_DONE)
-                                await Promise.resolve(task(res!));
+                                await task(res);
                         })
                         .catch(err => error = err)
                     )
@@ -495,7 +474,7 @@ export class Batch {
                         })
                         .then(async res => {
                             if (res !== JOB_DONE) {
-                                const filter = await Promise.resolve(predicate(res!))
+                                const filter = await predicate(res);
                                 if (filter)
                                     results.push(res);
                             }
