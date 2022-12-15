@@ -30,6 +30,10 @@ export class Batch {
         if (typeof taskOptions.task !== 'function')
             throw new TypeError("Expected \`taskOptions.task(" + typeof taskOptions.task + ")\` to be a \`function\`");
 
+        const interval = typeof taskOptions.batchInterval === 'number' && !isNaN(taskOptions.batchInterval) && taskOptions.batchInterval > 0
+            ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.batchInterval))
+            : undefined;
+
         const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const wait = new Array(taskOptions.batchSize);
 
@@ -55,6 +59,8 @@ export class Batch {
 
             await Promise
                 .all(wait);
+
+            await interval?.();
         }
     }
 
@@ -100,6 +106,10 @@ export class Batch {
         if (typeof taskOptions.task !== 'function')
             throw new TypeError("Expected \`taskOptions.task(" + typeof taskOptions.task + ")\` to be a \`function\`");
 
+        const interval = typeof taskOptions.batchInterval === 'number' && !isNaN(taskOptions.batchInterval) && taskOptions.batchInterval > 0
+            ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.batchInterval))
+            : undefined;
+
         const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: PromiseSettledResult<B>[] = new Array();
         const wait = new Array(taskOptions.batchSize);
@@ -131,6 +141,8 @@ export class Batch {
 
             await Promise
                 .all(wait);
+
+            await interval?.();
         }
 
         return results;

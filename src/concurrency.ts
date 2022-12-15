@@ -26,6 +26,9 @@ export class Concurrency {
                 throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
             const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+            const interval = typeof taskOptions.concurrencyInterval === 'number' && !isNaN(taskOptions.concurrencyInterval) && taskOptions.concurrencyInterval > 0
+                ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval))
+                : undefined;
 
             const wait = new Array(taskOptions.maxConcurrency);
             for (let i = 0; i < taskOptions.maxConcurrency; i++)
@@ -37,6 +40,7 @@ export class Concurrency {
                                 if (item.done) break;
 
                                 await taskOptions.task(await item.value);
+                                await interval?.();
                             } while (true);
 
                             resolve();
@@ -93,6 +97,9 @@ export class Concurrency {
 
             const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
             const results: PromiseSettledResult<B>[] = new Array();
+            const interval = typeof taskOptions.concurrencyInterval === 'number' && !isNaN(taskOptions.concurrencyInterval) && taskOptions.concurrencyInterval > 0
+                ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval))
+                : undefined;
 
             let idx = 0;
 
@@ -118,6 +125,7 @@ export class Concurrency {
                                     reason: err
                                 };
                             }
+                            await interval?.();
                         } while (true);
 
                         resolve();
