@@ -8,8 +8,12 @@ Concurrency;
 
 const run = async () => {
     let idx = 0;
-    const batchInstance = new Batch(4);
-    const concurrencyInstance = new Concurrency(4);
+    const batchInstance = new Batch({
+        batchSize: 4
+    });
+    const concurrencyInstance = new Concurrency({
+        maxConcurrency: 4
+    });
 
     // const mapSharedBatch = {
     //     'BatchInstance.map 4': await Promise.all([
@@ -39,10 +43,13 @@ const run = async () => {
     // mapSharedBatch;
 
     const map = {
-        'Batch.map 4': await Batch.map(data, 4, async (item) => new Promise((resolve) => {
-            console.log(`Batch.map ${idx++} - Item ${item}`)
-            setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
-        })),
+        'Batch.map 4': await Batch.map(data, {
+            batchSize: 4,
+            task: async (item) => new Promise((resolve) => {
+                console.log(`Batch.map ${idx++} - Item ${item}`)
+                setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
+            })
+        }),
         _: (() => { idx = 0; globalThis.gc?.(); })(),
 
         'BatchInstance.map 4': await batchInstance.map(data, async (item) => new Promise((resolve) => {
@@ -51,10 +58,13 @@ const run = async () => {
         })),
         _0: (() => { idx = 0; globalThis.gc?.(); })(),
 
-        'Concurrency.map 4': await Concurrency.map(data, 4, async (item) => new Promise((resolve) => {
-            console.log(`Concurrency.map ${idx++}`)
-            setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
-        })),
+        'Concurrency.map 4': await Concurrency.map(data, {
+            maxConcurrency: 4,
+            task: async (item) => new Promise((resolve) => {
+                console.log(`Concurrency.map ${idx++}`)
+                setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
+            })
+        }),
         _1: (() => { idx = 0; globalThis.gc?.(); })(),
 
         'ConcurrencyInstance.map 4': await concurrencyInstance.map(data, async (item) => new Promise((resolve) => {
@@ -74,10 +84,13 @@ const run = async () => {
     const filterSymbol = Symbol();
 
     const filter = {
-        'Batch.filter 4': await Batch.filter(data, 4, async (item) => new Promise((resolve) => {
-            console.log(`Batch.filter ${idx++} - Item ${item}`)
-            setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
-        })),
+        'Batch.filter 4': await Batch.filter(data, {
+            batchSize: 4,
+            predicate: async (item) => new Promise((resolve) => {
+                console.log(`Batch.filter ${idx++} - Item ${item}`)
+                setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
+            })
+        }),
         _: (() => { idx = 0; globalThis.gc?.(); })(),
 
         'BatchInstance.filter 4': await batchInstance.filter(data, async (item) => new Promise((resolve) => {
@@ -86,10 +99,13 @@ const run = async () => {
         })),
         _0: (() => { idx = 0; globalThis.gc?.(); })(),
 
-        'Concurrency.filter 4': await Concurrency.filter(data, 4, async (item) => new Promise((resolve) => {
-            console.log(`Concurrency.filter ${idx++}`)
-            setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
-        })),
+        'Concurrency.filter 4': await Concurrency.filter(data, {
+            maxConcurrency: 4,
+            predicate: async (item) => new Promise((resolve) => {
+                console.log(`Concurrency.filter ${idx++}`)
+                setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
+            })
+        }),
         _1: (() => { idx = 0; globalThis.gc?.(); })(),
 
         'ConcurrencyInstance.filter 4': await concurrencyInstance.filter(data, async (item) => new Promise((resolve) => {
@@ -107,16 +123,22 @@ const run = async () => {
     console.log(JSON.stringify(filter));
 
     const mapSettled = {
-        'Batch.mapSettled 4': await Batch.mapSettled(data, 4, async (item) => new Promise((resolve) => {
-            console.log(`Batch.mapSettled ${idx++}`)
-            setTimeout(() => resolve(item ** item + 1), 400 + (idx * 50));
-        })),
+        'Batch.mapSettled 4': await Batch.mapSettled(data, {
+            batchSize: 4,
+            task: async (item) => new Promise((resolve) => {
+                console.log(`Batch.mapSettled ${idx++}`)
+                setTimeout(() => resolve(item ** item + 1), 400 + (idx * 50));
+            })
+        }),
         _: (() => { idx = 0; globalThis.gc?.(); })(),
 
-        'Concurrency.mapSettled 4': await Concurrency.mapSettled(data, 4, async (item) => new Promise((resolve) => {
-            console.log(`Concurrency.mapSettled ${idx++}`)
-            setTimeout(() => resolve(item ** item + 1), 400 + (idx * 50));
-        })),
+        'Concurrency.mapSettled 4': await Concurrency.mapSettled(data, {
+            maxConcurrency: 4,
+            task: async (item) => new Promise((resolve) => {
+                console.log(`Concurrency.mapSettled ${idx++}`)
+                setTimeout(() => resolve(item ** item + 1), 400 + (idx * 50));
+            })
+        }),
         _1: (() => { idx = 0; globalThis.gc?.(); })(),
 
         'Promise.allSettled': await Promise.allSettled(data.map(async item => new Promise((resolve) => {
@@ -130,16 +152,22 @@ const run = async () => {
     console.log(JSON.stringify(mapSettled));
 
     const forEach = {
-        'Batch.forEach 4': await Batch.forEach(data, 4, async (item) => new Promise((resolve) => {
-            console.log(`Batch.forEach ${idx++}`)
-            setTimeout(() => { item ** item + 1; resolve(); }, 400 + (idx * 50));
-        })),
+        'Batch.forEach 4': await Batch.forEach(data, {
+            batchSize: 4,
+            task: async (item) => new Promise<void>((resolve) => {
+                console.log(`Batch.forEach ${idx++}`)
+                setTimeout(() => { item ** item + 1; resolve(); }, 400 + (idx * 50));
+            })
+        }),
         _: (() => { idx = 0; globalThis.gc?.(); })(),
 
-        'Concurrency.forEach 4': await Concurrency.forEach(data, 4, async (item) => new Promise((resolve) => {
-            console.log(`Concurrency.forEach ${idx++}`)
-            setTimeout(() => { item ** item + 1; resolve(); }, 400 + (idx * 50));
-        })),
+        'Concurrency.forEach 4': await Concurrency.forEach(data, {
+            maxConcurrency: 4,
+            task: async (item) => new Promise<void>((resolve) => {
+                console.log(`Concurrency.forEach ${idx++}`)
+                setTimeout(() => { item ** item + 1; resolve(); }, 400 + (idx * 50));
+            })
+        }),
         _1: (() => { idx = 0; globalThis.gc?.(); })(),
 
         'Promise.all(void)': await Promise.all(data.map(async item => new Promise<void>((resolve) => {

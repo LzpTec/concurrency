@@ -24,8 +24,11 @@ export class Batch {
         if (!isAsync && !isSync)
             throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        if (typeof taskOptions.batchInterval !== 'number' || isNaN(taskOptions.batchInterval))
-            throw new TypeError("Expected \`taskOptions.batchInterval(" + typeof taskOptions.batchInterval + ")\` to be a \`number\`");
+        if (typeof taskOptions.batchSize !== 'number' || !Number.isInteger(taskOptions.batchSize))
+            throw new TypeError("Expected \`taskOptions.batchSize(" + typeof taskOptions.batchSize + ")\` to be a integer \`number\`");
+
+        if (taskOptions.batchSize < 1)
+            throw new Error(`Parameter taskOptions.batchSize must be at least 1, got ${taskOptions.batchSize}!`);
 
         if (typeof taskOptions.task !== 'function')
             throw new TypeError("Expected \`taskOptions.task(" + typeof taskOptions.task + ")\` to be a \`function\`");
@@ -77,7 +80,7 @@ export class Batch {
         const results: B[] = new Array();
 
         await Batch.forEach(input, {
-            batchSize: taskOptions.batchSize,
+            ...taskOptions,
             task: async (item) => results.push(await taskOptions.task(item))
         });
 
@@ -100,8 +103,11 @@ export class Batch {
         if (!isAsync && !isSync)
             throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-        if (typeof taskOptions.batchInterval !== 'number' || isNaN(taskOptions.batchInterval))
-            throw new TypeError("Expected \`taskOptions.batchInterval(" + typeof taskOptions.batchInterval + ")\` to be a \`number\`");
+        if (typeof taskOptions.batchSize !== 'number' || !Number.isInteger(taskOptions.batchSize))
+            throw new TypeError("Expected \`taskOptions.batchSize(" + typeof taskOptions.batchSize + ")\` to be a integer \`number\`");
+
+        if (taskOptions.batchSize < 1)
+            throw new Error(`Parameter taskOptions.batchSize must be at least 1, got ${taskOptions.batchSize}!`);
 
         if (typeof taskOptions.task !== 'function')
             throw new TypeError("Expected \`taskOptions.task(" + typeof taskOptions.task + ")\` to be a \`function\`");
@@ -163,7 +169,7 @@ export class Batch {
             throw new TypeError("Expected \`taskOptions.predicate(" + typeof taskOptions.predicate + ")\` to be a \`function\`");
 
         await Batch.forEach(input, {
-            batchSize: taskOptions.batchSize,
+            ...taskOptions,
             task: async (item) => {
                 if (await taskOptions.predicate(item))
                     results.push(item);

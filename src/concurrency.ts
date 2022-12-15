@@ -18,44 +18,46 @@ export class Concurrency {
      * @returns {Promise<void>}
      */
     static async forEach<A>(input: Input<A>, taskOptions: ConcurrencyTaskOptions<A, any>): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            const isAsync = isAsyncIterator(input);
-            const isSync = isIterator(input);
+        const isAsync = isAsyncIterator(input);
+        const isSync = isIterator(input);
 
-            if (!isAsync && !isSync)
-                throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-            const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
-            const interval = typeof taskOptions.concurrencyInterval === 'number' && !isNaN(taskOptions.concurrencyInterval) && taskOptions.concurrencyInterval > 0
-                ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval))
-                : undefined;
+        if (typeof taskOptions.maxConcurrency !== 'number' || !Number.isInteger(taskOptions.maxConcurrency))
+            throw new TypeError("Expected \`taskOptions.maxConcurrency(" + typeof taskOptions.maxConcurrency + ")\` to be a integer \`number\`");
 
-            const wait = new Array(taskOptions.maxConcurrency);
-            for (let i = 0; i < taskOptions.maxConcurrency; i++)
-                wait[i] = new Promise<void>(
-                    async (resolve, reject) => {
-                        try {
-                            do {
-                                const item = await iterator.next();
-                                if (item.done) break;
+        if (taskOptions.maxConcurrency < 1)
+            throw new Error(`Parameter taskOptions.maxConcurrency must be at least 1, got ${taskOptions.maxConcurrency}!`);
 
-                                await taskOptions.task(await item.value);
-                                await interval?.();
-                            } while (true);
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+        const interval = typeof taskOptions.concurrencyInterval === 'number' && !isNaN(taskOptions.concurrencyInterval) && taskOptions.concurrencyInterval > 0
+            ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval))
+            : undefined;
 
-                            resolve();
-                        } catch (err) {
-                            reject(err);
-                            return;
-                        }
+        const wait = new Array(taskOptions.maxConcurrency);
+        for (let i = 0; i < taskOptions.maxConcurrency; i++)
+            wait[i] = new Promise<void>(
+                async (resolve, reject) => {
+                    try {
+                        do {
+                            const item = await iterator.next();
+                            if (item.done) break;
+
+                            await taskOptions.task(await item.value);
+                            await interval?.();
+                        } while (true);
+
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                        return;
                     }
-                );
+                }
+            );
 
-            Promise
-                .all(wait)
-                .then(() => resolve())
-                .catch(err => reject(err));
-        });
+        await Promise
+            .all(wait);
     }
 
     /**
@@ -71,7 +73,7 @@ export class Concurrency {
         const results: B[] = new Array();
 
         await Concurrency.forEach(input, {
-            maxConcurrency: taskOptions.maxConcurrency,
+            ...taskOptions,
             task: async (item) => results.push(await taskOptions.task(item))
         });
 
@@ -88,55 +90,58 @@ export class Concurrency {
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
     static async mapSettled<A, B>(input: Input<A>, taskOptions: ConcurrencyTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
-        return new Promise<PromiseSettledResult<B>[]>((resolve, reject) => {
-            const isAsync = isAsyncIterator(input);
-            const isSync = isIterator(input);
+        const isAsync = isAsyncIterator(input);
+        const isSync = isIterator(input);
 
-            if (!isAsync && !isSync)
-                throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
 
-            const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
-            const results: PromiseSettledResult<B>[] = new Array();
-            const interval = typeof taskOptions.concurrencyInterval === 'number' && !isNaN(taskOptions.concurrencyInterval) && taskOptions.concurrencyInterval > 0
-                ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval))
-                : undefined;
+        if (typeof taskOptions.maxConcurrency !== 'number' || !Number.isInteger(taskOptions.maxConcurrency))
+            throw new TypeError("Expected \`taskOptions.maxConcurrency(" + typeof taskOptions.maxConcurrency + ")\` to be a integer \`number\`");
 
-            let idx = 0;
+        if (taskOptions.maxConcurrency < 1)
+            throw new Error(`Parameter taskOptions.maxConcurrency must be at least 1, got ${taskOptions.maxConcurrency}!`);
 
-            const wait = new Array(taskOptions.maxConcurrency);
-            for (let i = 0; i < taskOptions.maxConcurrency; i++)
-                wait[i] = new Promise<void>(
-                    async (resolve) => {
-                        do {
-                            const index = idx;
-                            idx++;
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+        const results: PromiseSettledResult<B>[] = new Array();
+        const interval = typeof taskOptions.concurrencyInterval === 'number' && !isNaN(taskOptions.concurrencyInterval) && taskOptions.concurrencyInterval > 0
+            ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval))
+            : undefined;
 
-                            try {
-                                const item = await iterator.next();
-                                if (item.done) break;
+        let idx = 0;
 
-                                results[index] = {
-                                    status: 'fulfilled',
-                                    value: await taskOptions.task(await item.value)
-                                };
-                            } catch (err) {
-                                results[index] = {
-                                    status: 'rejected',
-                                    reason: err
-                                };
-                            }
-                            await interval?.();
-                        } while (true);
+        const wait = new Array(taskOptions.maxConcurrency);
+        for (let i = 0; i < taskOptions.maxConcurrency; i++)
+            wait[i] = new Promise<void>(
+                async (resolve) => {
+                    do {
+                        const index = idx;
+                        idx++;
 
-                        resolve();
-                    }
-                );
+                        try {
+                            const item = await iterator.next();
+                            if (item.done) break;
 
-            Promise
-                .all(wait)
-                .then(() => resolve(results))
-                .catch(err => reject(err));
-        });
+                            results[index] = {
+                                status: 'fulfilled',
+                                value: await taskOptions.task(await item.value)
+                            };
+                        } catch (err) {
+                            results[index] = {
+                                status: 'rejected',
+                                reason: err
+                            };
+                        }
+                        await interval?.();
+                    } while (true);
+
+                    resolve();
+                }
+            );
+
+        return await Promise
+            .all(wait)
+            .then(() => results);
     }
 
     /**
@@ -151,7 +156,7 @@ export class Concurrency {
         const results: A[] = new Array();
 
         await Concurrency.forEach(input, {
-            maxConcurrency: taskOptions.maxConcurrency,
+            ...taskOptions,
             task: async (item) => {
                 if (await taskOptions.predicate(item))
                     results.push(item);
