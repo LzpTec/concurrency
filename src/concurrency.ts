@@ -1,7 +1,7 @@
 import { Queue } from './collections';
 import { Event } from './event-emitter';
 import { isAsyncIterator, isIterator } from './guards';
-import type { ConcurrencyOptions } from './options';
+import type { ConcurrencyCommonOptions } from './options';
 import type { Input, Job, RunnableTask, Task } from './types';
 
 const JOB_DONE = Symbol(`JobDone`);
@@ -158,9 +158,9 @@ export class Concurrency {
 
     /**
      * 
-     * @param {ConcurrencyOptions} options 
+     * @param {ConcurrencyCommonOptions} options 
      */
-    constructor(options: ConcurrencyOptions) {
+    constructor(options: ConcurrencyCommonOptions) {
         this.maxConcurrency = options.maxConcurrency;
     }
 
