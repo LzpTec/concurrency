@@ -1,6 +1,7 @@
 import { Queue } from './collections';
 import { Event } from './event-emitter';
 import { isAsyncIterator, isIterator } from './guards';
+import type { BatchOptions } from './options';
 import type { Input, Job, RunnableTask, Task } from './types';
 
 const JOB_DONE = Symbol(`JobDone`);
@@ -150,10 +151,10 @@ export class Batch {
 
     /**
      * 
-     * @param {number} batchSize 
+     * @param {BatchOptions} options 
      */
-    constructor(batchSize: number) {
-        this.batchSize = batchSize;
+    constructor(options: BatchOptions) {
+        this.batchSize = options.batchSize;
     }
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {

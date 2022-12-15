@@ -1,6 +1,7 @@
 import { Queue } from './collections';
 import { Event } from './event-emitter';
 import { isAsyncIterator, isIterator } from './guards';
+import type { ConcurrencyOptions } from './options';
 import type { Input, Job, RunnableTask, Task } from './types';
 
 const JOB_DONE = Symbol(`JobDone`);
@@ -157,10 +158,10 @@ export class Concurrency {
 
     /**
      * 
-     * @param {number} maxConcurrency 
+     * @param {ConcurrencyOptions} options 
      */
-    constructor(maxConcurrency: number) {
-        this.maxConcurrency = maxConcurrency;
+    constructor(options: ConcurrencyOptions) {
+        this.maxConcurrency = options.maxConcurrency;
     }
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {
