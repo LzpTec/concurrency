@@ -44,3 +44,10 @@ export interface ConcurrencyTaskOptions<A, B> extends ConcurrencyCommonOptions {
      */
     task: Task<A, B>;
 }
+
+export interface ConcurrencyFilterOptions<A> extends ConcurrencyCommonOptions {
+    /**
+     * The filter method calls the predicate function one time for each element in the array.
+     */
+    predicate: Task<A, boolean>;
+}

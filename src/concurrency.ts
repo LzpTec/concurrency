@@ -1,7 +1,7 @@
 import { Queue } from './collections';
 import { Event } from './event-emitter';
 import { isAsyncIterator, isIterator } from './guards';
-import type { ConcurrencyCommonOptions } from './options';
+import type { ConcurrencyCommonOptions, ConcurrencyFilterOptions, ConcurrencyTaskOptions } from './options';
 import type { Input, Job, RunnableTask, Task } from './types';
 
 const JOB_DONE = Symbol(`JobDone`);
@@ -14,11 +14,10 @@ export class Concurrency {
      * 
      * @template A
      * @param {Input<A>} input Arguments to pass to the task for each call.
-     * @param {number} maxConcurrency
-     * @param {Task<A, any>} task The task to run for each item.
+     * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
      * @returns {Promise<void>}
      */
-    static async forEach<A>(input: Input<A>, maxConcurrency: number, task: Task<A, any>): Promise<void> {
+    static async forEach<A>(input: Input<A>, taskOptions: ConcurrencyTaskOptions<A, any>): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             const isAsync = isAsyncIterator(input);
             const isSync = isIterator(input);
@@ -28,8 +27,8 @@ export class Concurrency {
 
             const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
 
-            const wait = new Array(maxConcurrency);
-            for (let i = 0; i < maxConcurrency; i++)
+            const wait = new Array(taskOptions.maxConcurrency);
+            for (let i = 0; i < taskOptions.maxConcurrency; i++)
                 wait[i] = new Promise<void>(
                     async (resolve, reject) => {
                         try {
@@ -37,7 +36,7 @@ export class Concurrency {
                                 const item = await iterator.next();
                                 if (item.done) break;
 
-                                await task(await item.value);
+                                await taskOptions.task(await item.value);
                             } while (true);
 
                             resolve();
@@ -61,14 +60,16 @@ export class Concurrency {
      * @template A
      * @template B
      * @param {Input<A>} input Arguments to pass to the task for each call.
-     * @param {number} maxConcurrency
-     * @param {Task<A, B>} task The task to run for each item.
+     * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
      * @returns {Promise<B[]>}
      */
-    static async map<A, B>(input: Input<A>, maxConcurrency: number, task: Task<A, B>): Promise<B[]> {
+    static async map<A, B>(input: Input<A>, taskOptions: ConcurrencyTaskOptions<A, B>): Promise<B[]> {
         const results: B[] = new Array();
 
-        await Concurrency.forEach(input, maxConcurrency, async (item) => results.push(await task(item)));
+        await Concurrency.forEach(input, {
+            maxConcurrency: taskOptions.maxConcurrency,
+            task: async (item) => results.push(await taskOptions.task(item))
+        });
 
         return results;
     }
@@ -79,11 +80,10 @@ export class Concurrency {
      * @template A
      * @template B
      * @param {Input<A>} input Arguments to pass to the task for each call.
-     * @param {number} maxConcurrency
-     * @param {Task<A, B>} task The task to run for each item.
+     * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
-    static async mapSettled<A, B>(input: Input<A>, maxConcurrency: number, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+    static async mapSettled<A, B>(input: Input<A>, taskOptions: ConcurrencyTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
         return new Promise<PromiseSettledResult<B>[]>((resolve, reject) => {
             const isAsync = isAsyncIterator(input);
             const isSync = isIterator(input);
@@ -96,8 +96,8 @@ export class Concurrency {
 
             let idx = 0;
 
-            const wait = new Array(maxConcurrency);
-            for (let i = 0; i < maxConcurrency; i++)
+            const wait = new Array(taskOptions.maxConcurrency);
+            for (let i = 0; i < taskOptions.maxConcurrency; i++)
                 wait[i] = new Promise<void>(
                     async (resolve) => {
                         do {
@@ -110,7 +110,7 @@ export class Concurrency {
 
                                 results[index] = {
                                     status: 'fulfilled',
-                                    value: await task(await item.value)
+                                    value: await taskOptions.task(await item.value)
                                 };
                             } catch (err) {
                                 results[index] = {
@@ -136,16 +136,18 @@ export class Concurrency {
      *
      * @template A
      * @param {Input<A>} input Arguments to pass to the predicate for each call.
-     * @param {number} maxConcurrency
-     * @param {Task<A, boolean>} predicate The task to run for each item.
+     * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
      * @returns {Promise<A[]>}
      */
-    static async filter<A>(input: Input<A>, maxConcurrency: number, predicate: Task<A, boolean>): Promise<A[]> {
+    static async filter<A>(input: Input<A>, taskOptions: ConcurrencyFilterOptions<A>): Promise<A[]> {
         const results: A[] = new Array();
 
-        await Concurrency.forEach(input, maxConcurrency, async (item) => {
-            if (await predicate(item))
-                results.push(item);
+        await Concurrency.forEach(input, {
+            maxConcurrency: taskOptions.maxConcurrency,
+            task: async (item) => {
+                if (await taskOptions.predicate(item))
+                    results.push(item);
+            }
         });
 
         return results;
