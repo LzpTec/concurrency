@@ -2,7 +2,7 @@
 
 ## 1.0.0
 
-- [ ] Standard Changelog
+- [x] Standard Changelog
 - [ ] Batch interval.
 - [ ] Concurrency interval
 - [ ] Change Batch and Concurrency constructors(Options Interface)
