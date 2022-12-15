@@ -5,3 +5,4 @@
 - [x] Add run method.
 - [x] Improve performance.
 - [x] Improve Project Struct.
+- [x] Reduce Size.

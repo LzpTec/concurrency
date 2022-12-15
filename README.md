@@ -133,7 +133,8 @@ The task to run for each item.
 
 Returns: `Promise<void>`
 
-Same as Batch.map, But it doesn't return the results
+Performs the specified task for each element in the input, but it waits for the first `batchSize` promises to finish before starting the next batch.
+Same as Batch.map, But it doesn't store/return the results.
 
 \* Only required in Global
 
