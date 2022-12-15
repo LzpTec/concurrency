@@ -23,15 +23,15 @@
   "scripts": {
     "build": "tsup",
     "prepublish": "pnpm run build",
-    "release": "standard-version",
-    "release:minor": "standard-version --release-as minor",
-    "release:patch": "standard-version --release-as patch",
-    "release:major": "standard-version --release-as major"
+    "release": "commit-and-tag-version",
+    "release:minor": "commit-and-tag-version --release-as minor",
+    "release:patch": "commit-and-tag-version --release-as patch",
+    "release:major": "commit-and-tag-version --release-as major"
   },
   "devDependencies": {
     "@types/node": "^16.11.00",
     "ava": "^4.3.3",
-    "standard-version": "^9.5.0",
+    "commit-and-tag-version": "^10.1.0",
     "ts-node": "^10.9.1",
     "tslib": "^2.4.0",
     "tsup": "^6.3.0",

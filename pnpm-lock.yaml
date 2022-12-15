@@ -3,7 +3,7 @@ lockfileVersion: 5.4
 specifiers:
   '@types/node': ^16.11.00
   ava: ^4.3.3
-  standard-version: ^9.5.0
+  commit-and-tag-version: ^10.1.0
   ts-node: ^10.9.1
   tslib: ^2.4.0
   tsup: ^6.3.0
@@ -12,7 +12,7 @@ specifiers:
 devDependencies:
   '@types/node': 16.11.68
   ava: 4.3.3
-  standard-version: 9.5.0
+  commit-and-tag-version: 10.1.0
   ts-node: 10.9.1_qz5pgscfesxhf7rldkrewqhv5y
   tslib: 2.4.0
   tsup: 6.3.0_mwhvu7sfp6vq5ryuwb6hlbjfka
@@ -500,6 +500,27 @@ packages:
   /commander/4.1.1:
     resolution: {integrity: sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA==}
     engines: {node: '>= 6'}
+    dev: true
+
+  /commit-and-tag-version/10.1.0:
+    resolution: {integrity: sha512-np3lR90bqFfOmxJtgqQc5UVBKFNdO06fRRTZm128QhEQ/ilXm3s/PXxZWheq2PUn5Qac2z+dWJJa+OqjxYsOpA==}
+    engines: {node: '>=14'}
+    hasBin: true
+    dependencies:
+      chalk: 2.4.2
+      conventional-changelog: 3.1.25
+      conventional-changelog-config-spec: 2.1.0
+      conventional-changelog-conventionalcommits: 4.6.3
+      conventional-recommended-bump: 6.1.0
+      detect-indent: 6.1.0
+      detect-newline: 3.1.0
+      dotgitignore: 2.1.0
+      figures: 3.2.0
+      find-up: 5.0.0
+      git-semver-tags: 4.1.1
+      semver: 7.3.8
+      stringify-package: 1.0.1
+      yargs: 17.6.0
     dev: true
 
   /common-path-prefix/3.0.0:
@@ -2323,27 +2344,6 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       escape-string-regexp: 2.0.0
-    dev: true
-
-  /standard-version/9.5.0:
-    resolution: {integrity: sha512-3zWJ/mmZQsOaO+fOlsa0+QK90pwhNd042qEcw6hKFNoLFs7peGyvPffpEBbK/DSGPbyOvli0mUIFv5A4qTjh2Q==}
-    engines: {node: '>=10'}
-    hasBin: true
-    dependencies:
-      chalk: 2.4.2
-      conventional-changelog: 3.1.25
-      conventional-changelog-config-spec: 2.1.0
-      conventional-changelog-conventionalcommits: 4.6.3
-      conventional-recommended-bump: 6.1.0
-      detect-indent: 6.1.0
-      detect-newline: 3.1.0
-      dotgitignore: 2.1.0
-      figures: 3.2.0
-      find-up: 5.0.0
-      git-semver-tags: 4.1.1
-      semver: 7.3.8
-      stringify-package: 1.0.1
-      yargs: 16.2.0
     dev: true
 
   /string-width/4.2.3:

@@ -21,6 +21,10 @@
             "section": "Docs"
         },
         {
+            "type": "misc",
+            "section": "Misc"
+        },
+        {
             "type": "chore",
             "hidden": true
         },
