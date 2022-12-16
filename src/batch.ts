@@ -413,16 +413,6 @@ export class Batch {
         Object.assign(this.#options, options);
     }
 
-    set batchSize(value: number) {
-        if (typeof value !== 'number' || isNaN(value) || !Number.isInteger(value))
-            throw new Error('Parameter `batchSize` invalid!');
-
-        if (value < 1)
-            throw new Error('Parameter `batchSize` must be at least 1!');
-
-        this.#options.batchSize = value;
-    }
-
 }
 
 Object.freeze(Batch);

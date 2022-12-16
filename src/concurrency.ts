@@ -397,16 +397,6 @@ export class Concurrency {
         Object.assign(this.#options, options);
     }
 
-    set maxConcurrency(value: number) {
-        if (typeof value !== 'number' || isNaN(value) || !Number.isInteger(value))
-            throw new Error('Parameter `maxConcurrency` invalid!');
-
-        if (value < 1)
-            throw new Error('Parameter `maxConcurrency` must be at least 1!');
-
-        this.#options.maxConcurrency = value;
-    }
-
 }
 
 Object.freeze(Concurrency);
