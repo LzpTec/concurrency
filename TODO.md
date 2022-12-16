@@ -5,8 +5,8 @@
 - [x] Standard Changelog
 - [x] Change Batch and Concurrency constructors(Options Interface)
 - [x] Add new options property to the Batch and Concurrency instances 
-- [ ] Batch interval.
-- [ ] Concurrency interval
+- [x] Batch interval.
+- [x] Concurrency interval
 - [ ] Update docs.
 
 ## 0.1.0
