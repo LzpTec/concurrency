@@ -30,6 +30,9 @@ export class Concurrency {
         if (taskOptions.maxConcurrency < 1)
             throw new Error(`Parameter taskOptions.maxConcurrency must be at least 1, got ${taskOptions.maxConcurrency}!`);
 
+        if (typeof taskOptions.task !== 'function')
+            throw new TypeError("Expected \`taskOptions.task(" + typeof taskOptions.task + ")\` to be a \`function\`");
+
         const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const interval = typeof taskOptions.concurrencyInterval === 'number' && !isNaN(taskOptions.concurrencyInterval) && taskOptions.concurrencyInterval > 0
             ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval))
@@ -101,6 +104,9 @@ export class Concurrency {
 
         if (taskOptions.maxConcurrency < 1)
             throw new Error(`Parameter taskOptions.maxConcurrency must be at least 1, got ${taskOptions.maxConcurrency}!`);
+
+        if (typeof taskOptions.task !== 'function')
+            throw new TypeError("Expected \`taskOptions.task(" + typeof taskOptions.task + ")\` to be a \`function\`");
 
         const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: PromiseSettledResult<B>[] = new Array();
@@ -385,7 +391,6 @@ export class Concurrency {
 
         this.#maxConcurrency = value;
     }
-
 }
 
 Object.freeze(Concurrency);
