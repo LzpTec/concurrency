@@ -179,7 +179,7 @@ export class Batch {
         return results;
     }
 
-    #batchSize: number = 1;
+    #options: BatchCommonOptions;
     #currentRunning: number = 0;
     #queue: Queue<Job> = new Queue();
     #waitEvent: Event = new Event();
@@ -189,7 +189,7 @@ export class Batch {
      * @param {BatchCommonOptions} options 
      */
     constructor(options: BatchCommonOptions) {
-        this.batchSize = options.batchSize;
+        this.options = options;
     }
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {
@@ -202,7 +202,7 @@ export class Batch {
     async #run() {
         await Promise.resolve();
 
-        if (this.#currentRunning >= this.#batchSize)
+        if (this.#currentRunning >= this.#options.batchSize)
             return;
 
         const jobs = new Array();
@@ -215,7 +215,7 @@ export class Batch {
                 .catch(err => job.reject(err));
 
             this.#currentRunning++;
-            if (this.#currentRunning >= this.#batchSize) {
+            if (this.#currentRunning >= this.#options.batchSize) {
                 await Promise.all(jobs);
                 this.#waitEvent.emit();
                 this.#currentRunning = 0;
@@ -270,7 +270,7 @@ export class Batch {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning >= this.#batchSize) {
+            if (this.#currentRunning >= this.#options.batchSize) {
                 await this.#waitEvent.once();
                 p = [];
             }
@@ -354,7 +354,7 @@ export class Batch {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning >= this.#batchSize) {
+            if (this.#currentRunning >= this.#options.batchSize) {
                 await this.#waitEvent.once();
                 p = [];
             }
@@ -398,14 +398,29 @@ export class Batch {
         return await this.#runJob(() => Promise.resolve(task(...args)));
     }
 
+    set options(options: BatchCommonOptions) {
+        if (typeof options.batchSize !== 'number' || !Number.isInteger(options.batchSize))
+            throw new Error('Parameter `batchSize` invalid!');
+
+        if (typeof options.batchInterval === 'number') {
+            if (isNaN(options.batchInterval))
+                throw new Error('Parameter `batchInterval` invalid!');
+
+            if (options.batchInterval <= 0)
+                throw new Error('Parameter `batchInterval` must be greater than 0!');
+        }
+
+        Object.assign(this.#options, options);
+    }
+
     set batchSize(value: number) {
         if (typeof value !== 'number' || isNaN(value) || !Number.isInteger(value))
-            throw new Error('Parameter batchSize invalid!');
+            throw new Error('Parameter `batchSize` invalid!');
 
         if (value < 1)
-            throw new Error('Parameter batchSize must be at least 1!');
+            throw new Error('Parameter `batchSize` must be at least 1!');
 
-        this.#batchSize = value;
+        this.#options.batchSize = value;
     }
 
 }

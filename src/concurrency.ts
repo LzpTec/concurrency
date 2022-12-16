@@ -172,7 +172,7 @@ export class Concurrency {
         return results;
     }
 
-    #maxConcurrency: number = 1;
+    #options: ConcurrencyCommonOptions;
     #currentRunning: number = 0;
     #queue: Queue<Job> = new Queue();
     #waitEvent: Event = new Event();
@@ -182,7 +182,7 @@ export class Concurrency {
      * @param {ConcurrencyCommonOptions} options 
      */
     constructor(options: ConcurrencyCommonOptions) {
-        this.maxConcurrency = options.maxConcurrency;
+        this.options = options;
     }
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {
@@ -195,7 +195,7 @@ export class Concurrency {
     async #run() {
         await Promise.resolve();
 
-        if (this.#currentRunning >= this.#maxConcurrency)
+        if (this.#currentRunning >= this.#options.maxConcurrency)
             return;
 
         while (!this.#queue.isEmpty()) {
@@ -258,7 +258,7 @@ export class Concurrency {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning >= this.#maxConcurrency)
+            if (this.#currentRunning >= this.#options.maxConcurrency)
                 await this.#waitEvent.once();
         }
 
@@ -340,7 +340,7 @@ export class Concurrency {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning >= this.#maxConcurrency)
+            if (this.#currentRunning >= this.#options.maxConcurrency)
                 await this.#waitEvent.once();
         }
 
@@ -382,15 +382,31 @@ export class Concurrency {
         return await this.#runJob(() => Promise.resolve(task(...args)));
     }
 
+    set options(options: ConcurrencyCommonOptions) {
+        if (typeof options.maxConcurrency !== 'number' || !Number.isInteger(options.maxConcurrency))
+            throw new Error('Parameter `maxConcurrency` invalid!');
+
+        if (typeof options.concurrencyInterval === 'number') {
+            if (isNaN(options.concurrencyInterval))
+                throw new Error('Parameter `concurrencyInterval` invalid!');
+
+            if (options.concurrencyInterval <= 0)
+                throw new Error('Parameter `concurrencyInterval` must be greater than 0!');
+        }
+
+        Object.assign(this.#options, options);
+    }
+
     set maxConcurrency(value: number) {
         if (typeof value !== 'number' || isNaN(value) || !Number.isInteger(value))
-            throw new Error('Parameter maxConcurrency invalid!');
+            throw new Error('Parameter `maxConcurrency` invalid!');
 
         if (value < 1)
-            throw new Error('Parameter maxConcurrency must be at least 1!');
+            throw new Error('Parameter `maxConcurrency` must be at least 1!');
 
-        this.#maxConcurrency = value;
+        this.#options.maxConcurrency = value;
     }
+
 }
 
 Object.freeze(Concurrency);
