@@ -209,7 +209,13 @@ export class Concurrency {
 
             this.#currentRunning--;
             this.#waitEvent.emit();
-            await Promise.resolve();
+
+            await new Promise<void>((resolve) => {
+                if (typeof this.#options.concurrencyInterval === 'number' && this.#options.concurrencyInterval > 0)
+                    return setTimeout(() => resolve(), this.#options.concurrencyInterval);
+
+                return resolve();
+            });
         }
     }
 
@@ -390,8 +396,10 @@ export class Concurrency {
             if (isNaN(options.concurrencyInterval))
                 throw new Error('Parameter `concurrencyInterval` invalid!');
 
-            if (options.concurrencyInterval <= 0)
-                throw new Error('Parameter `concurrencyInterval` must be greater than 0!');
+            if (options.concurrencyInterval < 0)
+                throw new Error('Parameter `concurrencyInterval` must be a positive number!');
+        } else {
+            options.concurrencyInterval = void 0;
         }
 
         Object.assign(this.#options, options);

@@ -217,6 +217,14 @@ export class Batch {
             this.#currentRunning++;
             if (this.#currentRunning >= this.#options.batchSize) {
                 await Promise.all(jobs);
+
+                await new Promise<void>((resolve) => {
+                    if (typeof this.#options.batchInterval === 'number' && this.#options.batchInterval > 0)
+                        return setTimeout(() => resolve(), this.#options.batchInterval);
+
+                    return resolve();
+                });
+
                 this.#waitEvent.emit();
                 this.#currentRunning = 0;
             }
@@ -406,8 +414,10 @@ export class Batch {
             if (isNaN(options.batchInterval))
                 throw new Error('Parameter `batchInterval` invalid!');
 
-            if (options.batchInterval <= 0)
-                throw new Error('Parameter `batchInterval` must be greater than 0!');
+            if (options.batchInterval < 0)
+                throw new Error('Parameter `batchInterval` must be a positive number!');
+        } else {
+            options.batchInterval = void 0;
         }
 
         Object.assign(this.#options, options);
