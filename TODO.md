@@ -7,7 +7,7 @@
 - [x] Add new options property to the Batch and Concurrency instances 
 - [x] Batch interval.
 - [x] Concurrency interval
-- [ ] Update docs.
+- [x] Update docs.
 
 ## 0.1.0
 
