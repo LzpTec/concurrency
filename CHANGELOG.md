@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+### [1.0.1](https://github.com/LzpTec/concurrency/compare/v1.0.0...v1.0.1) (2022-12-18)
+
+
+### Misc
+
+* Added docs folder. ([0564d81](https://github.com/LzpTec/concurrency/commit/0564d8137e6556b23f8b68340bd82a8e0b4ac2a6))
+
+
+### Docs
+
+* Move usage to docs folder. ([3241a8b](https://github.com/LzpTec/concurrency/commit/3241a8b14b0285f568ba0f708474fb52d014eddf))
+
 ## [1.0.0](https://github.com/LzpTec/concurrency/compare/v0.1.0...v1.0.0) (2022-12-17)
 
 
