@@ -8,6 +8,7 @@ test
 stryker.conf.json
 examples/
 benchmark/
+docs/
 *.ts
 !*.d.ts
 pnpm-lock.yaml
