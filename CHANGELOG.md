@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+### [1.0.2](https://github.com/LzpTec/concurrency/compare/v1.0.1...v1.0.2) (2022-12-23)
+
+
+### Bug Fixes
+
+* Added filter predicate validation on Concurrency. ([58e1b94](https://github.com/LzpTec/concurrency/commit/58e1b94def9d50dcd22ee749a8f0a502258bb9f4))
+* Option assign. ([cb848a1](https://github.com/LzpTec/concurrency/commit/cb848a10039179814953181222db2e615c10fb39))
+
+
+### Performance
+
+* Change internal Batch and Concurrency structure. ([47533e1](https://github.com/LzpTec/concurrency/commit/47533e19d7752d9550f290cb18e055211c67fffc))
+
 ### [1.0.1](https://github.com/LzpTec/concurrency/compare/v1.0.0...v1.0.1) (2022-12-18)
 
 
