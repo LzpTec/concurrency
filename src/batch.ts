@@ -411,7 +411,7 @@ export class Batch {
             options.batchInterval = void 0;
         }
 
-        Object.assign(this.#options, options);
+        this.#options = Object.assign({}, this.#options, options);
     }
 
 }

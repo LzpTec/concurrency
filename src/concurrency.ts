@@ -400,7 +400,7 @@ export class Concurrency {
             options.concurrencyInterval = void 0;
         }
 
-        Object.assign(this.#options, options);
+        this.#options = Object.assign({}, this.#options, options);
     }
 
 }
