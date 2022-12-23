@@ -7,17 +7,11 @@ import type { Input, Job, RunnableTask, Task } from './types';
 const JOB_DONE = Symbol(`JobDone`);
 
 export class Batch {
-    /**
-     * Performs the specified task for each element in the input, but it waits for the first `batchSize` promises to finish before starting the next batch.
-     *
-     * Same as Batch.map, But it doesn't store/return the results.
-     * 
-     * @template A Input Type.
-     * @param {Input<A>} input Arguments to pass to the task for each call.
-     * @param {BatchTaskOptions<A, any>} taskOptions Task Options.
-     * @returns {Promise<void>}
-     */
-    static async forEach<A>(input: Input<A>, taskOptions: BatchTaskOptions<A, any>): Promise<void> {
+
+    static #validateTaskInput<A, B>(
+        input: Input<A>,
+        taskOptions: BatchTaskOptions<A, B>
+    ): [AsyncIterator<A | Promise<A>> | Iterator<A | Promise<A>>, (() => Promise<void>) | undefined] {
         const isAsync = isAsyncIterator(input);
         const isSync = isIterator(input);
 
@@ -30,34 +24,36 @@ export class Batch {
         if (taskOptions.batchSize < 1)
             throw new Error(`Parameter taskOptions.batchSize must be at least 1, got ${taskOptions.batchSize}!`);
 
-        if (typeof taskOptions.task !== 'function')
-            throw new TypeError("Expected \`taskOptions.task(" + typeof taskOptions.task + ")\` to be a \`function\`");
+        const fieldType = typeof taskOptions.task;
+        if (fieldType !== 'function')
+            throw new TypeError("Expected \`taskOptions.task(" + fieldType + ")\` to be a \`function\`");
 
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const interval = typeof taskOptions.batchInterval === 'number' && !isNaN(taskOptions.batchInterval) && taskOptions.batchInterval > 0
             ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.batchInterval))
             : undefined;
 
-        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+        return [iterator, interval];
+    }
+
+    static async #runGlobalTask(
+        task: (index: number) => Promise<boolean>,
+        interval: (() => Promise<void>) | undefined,
+        taskOptions: BatchTaskOptions<any, any>
+    ) {
         const wait = new Array(taskOptions.batchSize);
 
+        let idx = 0;
         let done = false;
+
         while (!done) {
             for (let i = 0; i < taskOptions.batchSize; i++) {
+                const index = idx;
+                idx++;
+
                 wait[i] = Promise
-                    .resolve(iterator.next())
-                    .then(res => {
-                        if (!res.done)
-                            return res.value;
-
-                        done = true;
-                        return JOB_DONE;
-                    })
-                    .then(async res => {
-                        if (res === JOB_DONE)
-                            return;
-
-                        await taskOptions.task(res);
-                    });
+                    .resolve(task(index))
+                    .then((isDone) => done = isDone);
             }
 
             await Promise
@@ -65,6 +61,33 @@ export class Batch {
 
             await interval?.();
         }
+    }
+
+    /**
+     * Performs the specified task for each element in the input, but it waits for the first `batchSize` promises to finish before starting the next batch.
+     *
+     * Same as Batch.map, But it doesn't store/return the results.
+     * 
+     * @template A Input Type.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
+     * @param {BatchTaskOptions<A, any>} taskOptions Task Options.
+     * @returns {Promise<void>}
+     */
+    static async forEach<A>(input: Input<A>, taskOptions: BatchTaskOptions<A, any>): Promise<void> {
+        const [iterator, interval] = this.#validateTaskInput(input, taskOptions);
+
+        await this.#runGlobalTask(
+            async () => {
+                const res = await iterator.next();
+                if (res.done)
+                    return true;
+
+                await taskOptions.task(await res.value);
+                return false;
+            },
+            interval,
+            taskOptions
+        );
     }
 
     /**
@@ -97,59 +120,26 @@ export class Batch {
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
     static async mapSettled<A, B>(input: Input<A>, taskOptions: BatchTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const isAsync = isAsyncIterator(input);
-        const isSync = isIterator(input);
-
-        if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
-
-        if (typeof taskOptions.batchSize !== 'number' || !Number.isInteger(taskOptions.batchSize))
-            throw new TypeError("Expected \`taskOptions.batchSize(" + typeof taskOptions.batchSize + ")\` to be a integer \`number\`");
-
-        if (taskOptions.batchSize < 1)
-            throw new Error(`Parameter taskOptions.batchSize must be at least 1, got ${taskOptions.batchSize}!`);
-
-        if (typeof taskOptions.task !== 'function')
-            throw new TypeError("Expected \`taskOptions.task(" + typeof taskOptions.task + ")\` to be a \`function\`");
-
-        const interval = typeof taskOptions.batchInterval === 'number' && !isNaN(taskOptions.batchInterval) && taskOptions.batchInterval > 0
-            ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.batchInterval))
-            : undefined;
-
-        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+        const [iterator, interval] = this.#validateTaskInput(input, taskOptions);
         const results: PromiseSettledResult<B>[] = new Array();
-        const wait = new Array(taskOptions.batchSize);
 
-        let idx = 0;
-        let done = false;
-        while (!done) {
-            for (let i = 0; i < taskOptions.batchSize; i++) {
-                const index = idx;
-                idx++;
+        await this.#runGlobalTask(
+            async (index) => {
+                try {
+                    const res = await iterator.next();
+                    if (res.done)
+                        return true;
 
-                wait[i] = Promise
-                    .resolve(iterator.next())
-                    .then(res => {
-                        if (!res.done)
-                            return res.value;
-
-                        done = true;
-                        return JOB_DONE;
-                    })
-                    .then(async res => {
-                        if (res === JOB_DONE)
-                            return;
-
-                        results[index] = { status: 'fulfilled', value: await taskOptions.task(res) };
-                    })
-                    .catch(err => { results[index] = { status: 'rejected', reason: err } })
-            }
-
-            await Promise
-                .all(wait);
-
-            await interval?.();
-        }
+                    results[index] = { status: 'fulfilled', value: await taskOptions.task(await res.value) };
+                    return false;
+                } catch (err) {
+                    results[index] = { status: 'rejected', reason: err }
+                    return false;
+                }
+            },
+            interval,
+            taskOptions
+        );
 
         return results;
     }
@@ -165,8 +155,9 @@ export class Batch {
     static async filter<A>(input: Input<A>, taskOptions: BatchFilterOptions<A>): Promise<A[]> {
         const results: A[] = new Array();
 
-        if (typeof taskOptions.predicate !== 'function')
-            throw new TypeError("Expected \`taskOptions.predicate(" + typeof taskOptions.predicate + ")\` to be a \`function\`");
+        const fieldType = typeof taskOptions.predicate;
+        if (fieldType !== 'function')
+            throw new TypeError("Expected \`taskOptions.predicate(" + fieldType + ")\` to be a \`function\`");
 
         await Batch.forEach(input, {
             ...taskOptions,

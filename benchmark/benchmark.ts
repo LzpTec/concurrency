@@ -56,7 +56,8 @@ const map = async (bench: Bench) => {
 
     await bench.run();
     printResults('map', bench);
-}
+};
+map;
 
 const mapSettled = async (bench: Bench) => {
     bench
@@ -84,7 +85,8 @@ const mapSettled = async (bench: Bench) => {
 
     await bench.run();
     printResults('mapSettled', bench);
-}
+};
+mapSettled;
 
 const forEach = async (bench: Bench) => {
     bench
@@ -112,7 +114,8 @@ const forEach = async (bench: Bench) => {
 
     await bench.run();
     printResults('forEach', bench);
-}
+};
+forEach;
 
 const filterSymbol = Symbol();
 const filter = async (bench: Bench) => {
@@ -153,7 +156,7 @@ const filter = async (bench: Bench) => {
 
     await bench.run();
     printResults('filter', bench);
-}
+};
 
 const run = async () => {
     const bench = new Bench({
@@ -176,7 +179,7 @@ const run = async () => {
     await forEach(bench);
     bench._tasks.clear();
     await filter(bench);
-}
+};
 
 const printResults = (name: string, bench: Bench) => {
     console.group('\n' + colors.green(name + ' Results'));

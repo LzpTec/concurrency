@@ -7,17 +7,11 @@ import type { Input, Job, RunnableTask, Task } from './types';
 const JOB_DONE = Symbol(`JobDone`);
 
 export class Concurrency {
-    /**
-     * Performs the specified task for each element in the input, but it limits the concurrent execution to `maxConcurrency`.
-     *
-     * Same as Concurrency.map, But it doesn't store/return the results.
-     * 
-     * @template A
-     * @param {Input<A>} input Arguments to pass to the task for each call.
-     * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
-     * @returns {Promise<void>}
-     */
-    static async forEach<A>(input: Input<A>, taskOptions: ConcurrencyTaskOptions<A, any>): Promise<void> {
+
+    static #validateTaskInput<A, B>(
+        input: Input<A>,
+        taskOptions: ConcurrencyTaskOptions<A, B>
+    ): [AsyncIterator<A | Promise<A>> | Iterator<A | Promise<A>>, (() => Promise<void>) | undefined] {
         const isAsync = isAsyncIterator(input);
         const isSync = isIterator(input);
 
@@ -30,13 +24,30 @@ export class Concurrency {
         if (taskOptions.maxConcurrency < 1)
             throw new Error(`Parameter taskOptions.maxConcurrency must be at least 1, got ${taskOptions.maxConcurrency}!`);
 
-        if (typeof taskOptions.task !== 'function')
-            throw new TypeError("Expected \`taskOptions.task(" + typeof taskOptions.task + ")\` to be a \`function\`");
+        const fieldType = typeof taskOptions.task;
+        if (fieldType !== 'function')
+            throw new TypeError("Expected \`taskOptions.task(" + fieldType + ")\` to be a \`function\`");
 
         const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const interval = typeof taskOptions.concurrencyInterval === 'number' && !isNaN(taskOptions.concurrencyInterval) && taskOptions.concurrencyInterval > 0
             ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval))
             : undefined;
+
+        return [iterator, interval];
+    }
+
+    /**
+     * Performs the specified task for each element in the input, but it limits the concurrent execution to `maxConcurrency`.
+     *
+     * Same as Concurrency.map, But it doesn't store/return the results.
+     * 
+     * @template A
+     * @param {Input<A>} input Arguments to pass to the task for each call.
+     * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
+     * @returns {Promise<void>}
+     */
+    static async forEach<A>(input: Input<A>, taskOptions: ConcurrencyTaskOptions<A, any>): Promise<void> {
+        const [iterator, interval] = this.#validateTaskInput(input, taskOptions);
 
         const wait = new Array(taskOptions.maxConcurrency);
         for (let i = 0; i < taskOptions.maxConcurrency; i++)
@@ -93,26 +104,9 @@ export class Concurrency {
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
     static async mapSettled<A, B>(input: Input<A>, taskOptions: ConcurrencyTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const isAsync = isAsyncIterator(input);
-        const isSync = isIterator(input);
+        const [iterator, interval] = this.#validateTaskInput(input, taskOptions);
 
-        if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
-
-        if (typeof taskOptions.maxConcurrency !== 'number' || !Number.isInteger(taskOptions.maxConcurrency))
-            throw new TypeError("Expected \`taskOptions.maxConcurrency(" + typeof taskOptions.maxConcurrency + ")\` to be a integer \`number\`");
-
-        if (taskOptions.maxConcurrency < 1)
-            throw new Error(`Parameter taskOptions.maxConcurrency must be at least 1, got ${taskOptions.maxConcurrency}!`);
-
-        if (typeof taskOptions.task !== 'function')
-            throw new TypeError("Expected \`taskOptions.task(" + typeof taskOptions.task + ")\` to be a \`function\`");
-
-        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
         const results: PromiseSettledResult<B>[] = new Array();
-        const interval = typeof taskOptions.concurrencyInterval === 'number' && !isNaN(taskOptions.concurrencyInterval) && taskOptions.concurrencyInterval > 0
-            ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval))
-            : undefined;
 
         let idx = 0;
 
