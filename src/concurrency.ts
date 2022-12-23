@@ -155,6 +155,10 @@ export class Concurrency {
     static async filter<A>(input: Input<A>, taskOptions: ConcurrencyFilterOptions<A>): Promise<A[]> {
         const results: A[] = new Array();
 
+        const fieldType = typeof taskOptions.predicate;
+        if (fieldType !== 'function')
+            throw new TypeError("Expected \`taskOptions.predicate(" + fieldType + ")\` to be a \`function\`");
+
         await Concurrency.forEach(input, {
             ...taskOptions,
             task: async (item) => {
