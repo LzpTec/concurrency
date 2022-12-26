@@ -4,11 +4,9 @@ import { isAsyncIterator, isIterator } from './guards';
 import type { BatchCommonOptions, BatchFilterOptions, BatchTaskOptions } from './options';
 import type { Input, Job, RunnableTask, Task } from './types';
 
-const JOB_DONE = Symbol(`JobDone`);
-
 export class Batch {
 
-    static #validateTaskInput<A, B>(
+    static #processGlobalTaskInput<A, B>(
         input: Input<A>,
         taskOptions: BatchTaskOptions<A, B>
     ): [AsyncIterator<A | Promise<A>> | Iterator<A | Promise<A>>, (() => Promise<void>) | undefined] {
@@ -74,7 +72,7 @@ export class Batch {
      * @returns {Promise<void>}
      */
     static async forEach<A>(input: Input<A>, taskOptions: BatchTaskOptions<A, any>): Promise<void> {
-        const [iterator, interval] = this.#validateTaskInput(input, taskOptions);
+        const [iterator, interval] = this.#processGlobalTaskInput(input, taskOptions);
 
         await this.#runGlobalTask(
             async () => {
@@ -120,7 +118,7 @@ export class Batch {
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
     static async mapSettled<A, B>(input: Input<A>, taskOptions: BatchTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const [iterator, interval] = this.#validateTaskInput(input, taskOptions);
+        const [iterator, interval] = this.#processGlobalTaskInput(input, taskOptions);
         const results: PromiseSettledResult<B>[] = new Array();
 
         await this.#runGlobalTask(
@@ -222,6 +220,22 @@ export class Batch {
         }
     }
 
+    #processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) {
+        const isAsync = isAsyncIterator(input);
+        const isSync = isIterator(input);
+
+        if (!isAsync && !isSync)
+            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+
+        const fieldType = typeof task;
+        if (fieldType !== 'function')
+            throw new TypeError("Expected \`task(" + fieldType + ")\` to be a \`function\`");
+
+        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+
+        return [iterator]
+    }
+
     /**
      * Performs the specified task for each element in the input, but it waits for the first `batchSize` promises to finish before starting the next batch.
      *
@@ -233,13 +247,7 @@ export class Batch {
      * @returns {Promise<void>}
      */
     async forEach<A>(input: Input<A>, task: Task<A, void>): Promise<void> {
-        const isAsync = isAsyncIterator(input);
-        const isSync = isIterator(input);
-
-        if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
-
-        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+        const [iterator] = this.#processTaskInput(input, task);
 
         let p = [];
         let done = false;
@@ -251,21 +259,15 @@ export class Batch {
 
             p
                 .push(
-                    this.#runJob(() => Promise
-                        .resolve(iterator.next())
-                        .then(res => {
-                            if (!res.done)
-                                return res.value;
-
+                    this.#runJob(async () => {
+                        const res = await iterator.next();
+                        if (res.done) {
                             done = true;
-                            return JOB_DONE;
-                        })
-                        .then(async res => {
-                            if (res !== JOB_DONE)
-                                await task(res);
-                        })
-                        .catch(err => error = err)
-                    )
+                            return;
+                        }
+
+                        await task(await res.value);
+                    }).catch(err => error = err)
                 );
 
             await Promise.resolve();
@@ -308,13 +310,7 @@ export class Batch {
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
     async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const isAsync = isAsyncIterator(input);
-        const isSync = isIterator(input);
-
-        if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
-
-        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+        const [iterator] = this.#processTaskInput(input, task);
         const results: PromiseSettledResult<B>[] = new Array();
 
         let idx = 0;
@@ -327,29 +323,24 @@ export class Batch {
 
             p
                 .push(
-                    this.#runJob(() => Promise
-                        .resolve(iterator.next())
-                        .then(res => {
-                            if (!res.done)
-                                return res.value;
-
+                    this.#runJob(async () => {
+                        const res = await iterator.next();
+                        if (res.done) {
                             done = true;
-                            return JOB_DONE;
-                        })
-                        .then(async res => {
-                            if (res !== JOB_DONE)
-                                results[index] = {
-                                    status: 'fulfilled',
-                                    value: await task(res)
-                                };
-                        })
-                        .catch(err => {
+                            return;
+                        }
+
+                        results[index] = {
+                            status: 'fulfilled',
+                            value: await task(await res.value)
+                        };
+                    })
+                        .catch(err =>
                             results[index] = {
                                 status: 'rejected',
                                 reason: err
-                            };
-                        })
-                    )
+                            }
+                        )
                 );
 
             await Promise.resolve();
@@ -374,6 +365,10 @@ export class Batch {
      * @returns {Promise<void>}
      */
     async filter<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<A[]> {
+        const fieldType = typeof predicate;
+        if (fieldType !== 'function')
+            throw new TypeError("Expected \`predicate(" + fieldType + ")\` to be a \`function\`");
+
         const results: A[] = new Array();
 
         await this.forEach(input, async (item) => {

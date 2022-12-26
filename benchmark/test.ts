@@ -45,8 +45,12 @@ const run = async () => {
     const map = {
         'Batch.map 4': await Batch.map(data, {
             batchSize: 4,
-            task: async (item) => new Promise((resolve) => {
-                console.log(`Batch.map ${idx++} - Item ${item}`)
+            task: async (item) => new Promise((resolve, reject) => {
+                console.log(`Batch.map ${idx++} - Item ${item}`);
+
+                if (idx === 4)
+                    return reject(new Error('Fail'));
+
                 setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
             })
         }),
