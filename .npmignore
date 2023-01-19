@@ -13,3 +13,5 @@ docs/
 !*.d.ts
 pnpm-lock.yaml
 TODO.md
+.versionrc.json
+CHANGELOG.md
