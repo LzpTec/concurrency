@@ -1,7 +1,7 @@
 /**
  * @template A
  * @template B
- * @callback Task
+ * @callback RunnableTask
  * @param {A[]} args
  * @returns {Promise<B> | B}
  */
