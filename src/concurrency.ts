@@ -373,7 +373,8 @@ export class Concurrency {
     /**
      * Determines whether the specified `predicate` function returns true for any element of an array.
      * 
-     * @param input Arguments to pass to the task for each call.
+     * @template A Input Type.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {Task<A, boolean>} predicate The task to run for each item.
      * @returns {Promise<boolean>}
      */
@@ -384,6 +385,28 @@ export class Concurrency {
             .forEach(input, async (item) => {
                 if (await predicate(item)) {
                     result = true;
+                    return interrupt;
+                }
+            });
+
+        return result;
+    }
+
+    /**
+     * Returns the value of the first element where `predicate` is true, and undefined otherwise.
+     * 
+     * @template A Input Type.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
+     * @param {Task<A, boolean>} predicate The task to run for each item.
+     * @returns {Promise<A | undefined>}
+     */
+    async find<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<A | undefined> {
+        let result;
+
+        await this
+            .forEach(input, async (item) => {
+                if (await predicate(item)) {
+                    result = item;
                     return interrupt;
                 }
             });
