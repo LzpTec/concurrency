@@ -1,10 +1,8 @@
-# TODO
+# TODO 
 
-## X.X.X
+## 1.2.0
 
-- [ ] Add examples.
-- [ ] Create tests.
-- [ ] Reduce project size.
+- [x] Reduce project size.
 
 ## 1.0.0
 
