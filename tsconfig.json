@@ -13,7 +13,7 @@
         "strictPropertyInitialization": false,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "noImplicitReturns": true,
+        "noImplicitReturns": false,
         "noFallthroughCasesInSwitch": true,
         "esModuleInterop": true,
         "importHelpers": false,

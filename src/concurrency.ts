@@ -4,6 +4,8 @@ import { isAsyncIterator, isIterator } from './guards';
 import type { ConcurrencyCommonOptions, ConcurrencyFilterOptions, ConcurrencyTaskOptions } from './options';
 import type { Input, Job, RunnableTask, Task } from './types';
 
+const interrupt = {};
+
 export class Concurrency {
 
     static #processGlobalTaskInput<A, B>(
@@ -257,7 +259,11 @@ export class Concurrency {
                             return;
                         }
 
-                        await task(await res.value);
+                        const result = await task(await res.value);
+                        if (result === interrupt) {
+                            done = true;
+                            return;
+                        }
                     })
                 );
 
@@ -346,7 +352,7 @@ export class Concurrency {
      *
      * @template A
      * @param {Input<A>} input Arguments to pass to the task for each call.
-     * @param {Task<A, void>} predicate The task to run for each item.
+     * @param {Task<A, boolean>} predicate The task to run for each item.
      * @returns {Promise<void>}
      */
     async filter<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<A[]> {
@@ -362,6 +368,27 @@ export class Concurrency {
         });
 
         return results;
+    }
+
+    /**
+     * Determines whether the specified `predicate` function returns true for any element of an array.
+     * 
+     * @param input Arguments to pass to the task for each call.
+     * @param {Task<A, boolean>} predicate The task to run for each item.
+     * @returns {Promise<boolean>}
+     */
+    async some<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<boolean> {
+        let result = false;
+
+        await this
+            .forEach(input, async (item) => {
+                if (await predicate(item)) {
+                    result = true;
+                    return interrupt;
+                }
+            });
+
+        return result;
     }
 
     /**

@@ -4,6 +4,8 @@ import { isAsyncIterator, isIterator } from './guards';
 import type { BatchCommonOptions, BatchFilterOptions, BatchTaskOptions } from './options';
 import type { Input, Job, RunnableTask, Task } from './types';
 
+const interrupt = {};
+
 export class Batch {
 
     static #processGlobalTaskInput<A, B>(
@@ -243,10 +245,10 @@ export class Batch {
      * 
      * @template A Input Type.
      * @param {Input<A>} input Arguments to pass to the task for each call.
-     * @param {Task<A, void>} task The task to run for each item.
+     * @param {Task<A, any>} task The task to run for each item.
      * @returns {Promise<void>}
      */
-    async forEach<A>(input: Input<A>, task: Task<A, void>): Promise<void> {
+    async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
         const [iterator] = this.#processTaskInput(input, task);
 
         let p = [];
@@ -266,7 +268,11 @@ export class Batch {
                             return;
                         }
 
-                        await task(await res.value);
+                        const result = await task(await res.value);
+                        if (result === interrupt) {
+                            done = true;
+                            return;
+                        }
                     }).catch(err => error = err)
                 );
 
@@ -293,9 +299,7 @@ export class Batch {
     async map<A, B>(input: Input<A>, task: Task<A, B>): Promise<B[]> {
         const results: B[] = new Array();
 
-        await this.forEach(input, async (item) => {
-            results.push(await task(item));
-        });
+        await this.forEach(input, async (item) => results.push(await task(item)));
 
         return results;
     }
@@ -377,6 +381,27 @@ export class Batch {
         });
 
         return results;
+    }
+
+    /**
+     * Determines whether the specified `predicate` function returns true for any element of an array.
+     * 
+     * @param input Arguments to pass to the task for each call.
+     * @param {Task<A, boolean>} predicate The task to run for each item.
+     * @returns {Promise<boolean>}
+     */
+    async some<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<boolean> {
+        let result = false;
+
+        await this
+            .forEach(input, async (item) => {
+                if (await predicate(item)) {
+                    result = true;
+                    return interrupt;
+                }
+            });
+
+        return result;
     }
 
     /**
