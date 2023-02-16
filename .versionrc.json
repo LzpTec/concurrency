@@ -25,6 +25,10 @@
             "section": "Misc"
         },
         {
+            "type": "deps",
+            "section": "Dependencies"
+        },
+        {
             "type": "chore",
             "hidden": true
         },
