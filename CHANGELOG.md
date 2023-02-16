@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.2.0](https://github.com/LzpTec/concurrency/compare/v1.1.0...v1.2.0) (2023-02-16)
+
+
+### Features
+
+* Added `every` method. ([c3ba782](https://github.com/LzpTec/concurrency/commit/c3ba7824e6a08f566ba6678e412efbab9000124c))
+* Added `find` method. ([bf909d4](https://github.com/LzpTec/concurrency/commit/bf909d4dd1b8b195a9a91a3703d466d5a7422c98))
+* Added `some` method. ([53db8b8](https://github.com/LzpTec/concurrency/commit/53db8b809e4136bd8bcbf1dddb85dc785d53d7aa))
+
+
+### Bug Fixes
+
+* JSDOC small typo. ([eb28a9d](https://github.com/LzpTec/concurrency/commit/eb28a9dbad4e0b944d22592b35de850fad8ba418))
+
+
+### Docs
+
+* Update TODO. ([f98c44a](https://github.com/LzpTec/concurrency/commit/f98c44a0302bd84ee51fc3c46e400a63e4596438))
+
+
+### Performance
+
+* Create a shared base for batch and concurrency, ([dabb757](https://github.com/LzpTec/concurrency/commit/dabb757ceb6600b0ac42b4ae813329a29b10bcde))
+
 ## [1.1.0](https://github.com/LzpTec/concurrency/compare/v1.0.2...v1.1.0) (2023-02-16)
 
 
