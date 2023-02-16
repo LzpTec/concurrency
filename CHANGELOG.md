@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.1.0](https://github.com/LzpTec/concurrency/compare/v1.0.2...v1.1.0) (2023-02-16)
+
+
+### Refactor
+
+* Change internal structure. ([c1c0ab2](https://github.com/LzpTec/concurrency/commit/c1c0ab2de977b78bd99717eab55c9ca3b7026490))
+
+
+### Misc
+
+* Add changelog files to .npmignore. ([1ba4bc8](https://github.com/LzpTec/concurrency/commit/1ba4bc8ff69d8e4526e669c41522367be8b73a07))
+* Add Dependencies section. ([b29e974](https://github.com/LzpTec/concurrency/commit/b29e9743ece8c37495608adae08b1fccea1654a3))
+
+
+### Dependencies
+
+* Update Deps. ([326d470](https://github.com/LzpTec/concurrency/commit/326d470c15795e5aa4de92d6d9992f98f8127924))
+
 ### [1.0.2](https://github.com/LzpTec/concurrency/compare/v1.0.1...v1.0.2) (2022-12-23)
 
 
