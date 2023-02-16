@@ -261,6 +261,7 @@ export class Batch extends SharedBase {
                         const result = await task(await res.value);
                         if (result === interrupt) {
                             done = true;
+                            iterator.return?.();
                             return;
                         }
                     }).catch(err => error = err)

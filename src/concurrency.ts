@@ -252,6 +252,7 @@ export class Concurrency extends SharedBase {
                         const result = await task(await res.value);
                         if (result === interrupt) {
                             done = true;
+                            iterator.return?.();
                             return;
                         }
                     })
