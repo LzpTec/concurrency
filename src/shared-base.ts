@@ -79,7 +79,7 @@ export abstract class SharedBase {
     }
 
     /**
-     * Determines whether the specified `predicate` function returns true for any element of an array.
+     * Determines whether the specified `predicate` function returns true for any element of `input`.
      * 
      * @template A Input Type.
      * @param {Input<A>} input Arguments to pass to the task for each call.
@@ -101,7 +101,7 @@ export abstract class SharedBase {
     }
 
     /**
-     * Returns the value of the first element where `predicate` is true, and undefined otherwise.
+     * Returns the value of the first element of `input` where `predicate` is true, and undefined otherwise.
      * 
      * @template A Input Type.
      * @param {Input<A>} input Arguments to pass to the task for each call.
@@ -115,6 +115,28 @@ export abstract class SharedBase {
             .forEach(input, async (item) => {
                 if (await predicate(item)) {
                     result = item;
+                    return interrupt;
+                }
+            });
+
+        return result;
+    }
+
+    /**
+     * Determines whether all the elements of `input` satisfy the specified `predicate`.
+     * 
+     * @template A Input Type.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
+     * @param {Task<A, boolean>} predicate The task to run for each item.
+     * @returns {Promise<boolean>}
+     */
+    async every<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<boolean> {
+        let result = true;
+
+        await this
+            .forEach(input, async (item) => {
+                if (!(await predicate(item))) {
+                    result = false;
                     return interrupt;
                 }
             });
