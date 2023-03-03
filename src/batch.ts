@@ -1,16 +1,17 @@
 import { Queue } from './collections';
 import { Event } from './event-emitter';
 import { isAsyncIterator, isIterator } from './guards';
-import type { BatchCommonOptions, BatchFilterOptions, BatchTaskOptions } from './options';
+import type { BatchCommonOptions, BatchPredicateOptions, BatchTaskOptions } from './options';
 import { interrupt, SharedBase } from './shared-base';
 import type { Input, Job, RunnableTask, Task } from './types';
 
 export class Batch extends SharedBase {
 
     static #processGlobalTaskInput<A, B>(
-        input: Input<A>,
         taskOptions: BatchTaskOptions<A, B>
     ): [AsyncIterator<A | Promise<A>> | Iterator<A | Promise<A>>, (() => Promise<void>) | undefined] {
+        const input = taskOptions.input;
+
         const isAsync = isAsyncIterator(input);
         const isSync = isIterator(input);
 
@@ -47,6 +48,9 @@ export class Batch extends SharedBase {
 
         while (!done) {
             for (let i = 0; i < taskOptions.batchSize; i++) {
+                if (done)
+                    break;
+
                 const index = idx;
                 idx++;
 
@@ -62,18 +66,23 @@ export class Batch extends SharedBase {
         }
     }
 
+    static async #validatePredicate<A>(taskOptions: BatchPredicateOptions<A>) {
+        const fieldType = typeof taskOptions.predicate;
+        if (fieldType !== 'function')
+            throw new TypeError("Expected \`taskOptions.predicate(" + fieldType + ")\` to be a \`function\`");
+    }
+
     /**
      * Performs the specified task for each element in the input, but it waits for the first `batchSize` promises to finish before starting the next batch.
      *
      * Same as Batch.map, But it doesn't store/return the results.
      * 
      * @template A Input Type.
-     * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {BatchTaskOptions<A, any>} taskOptions Task Options.
      * @returns {Promise<void>}
      */
-    static async forEach<A>(input: Input<A>, taskOptions: BatchTaskOptions<A, any>): Promise<void> {
-        const [iterator, interval] = this.#processGlobalTaskInput(input, taskOptions);
+    static async forEach<A>(taskOptions: BatchTaskOptions<A, any>): Promise<void> {
+        const [iterator, interval] = this.#processGlobalTaskInput(taskOptions);
 
         await this.#runGlobalTask(
             async () => {
@@ -81,7 +90,12 @@ export class Batch extends SharedBase {
                 if (res.done)
                     return true;
 
-                await taskOptions.task(await res.value);
+                const result = await taskOptions.task(await res.value);
+                if (result === interrupt) {
+                    iterator.return?.();
+                    return true;
+                }
+
                 return false;
             },
             interval,
@@ -94,14 +108,13 @@ export class Batch extends SharedBase {
      *
      * @template A Input Type.
      * @template B Output Type.
-     * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {BatchTaskOptions<A, B>} taskOptions Task Options.
      * @returns {Promise<B[]>}
      */
-    static async map<A, B>(input: Input<A>, taskOptions: BatchTaskOptions<A, B>): Promise<B[]> {
+    static async map<A, B>(taskOptions: BatchTaskOptions<A, B>): Promise<B[]> {
         const results: B[] = new Array();
 
-        await Batch.forEach(input, {
+        await Batch.forEach({
             ...taskOptions,
             task: async (item) => results.push(await taskOptions.task(item))
         });
@@ -114,12 +127,11 @@ export class Batch extends SharedBase {
      *
      * @template A Input Type.
      * @template B Output Type.
-     * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {BatchTaskOptions<A, B>} taskOptions Task Options.
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
-    static async mapSettled<A, B>(input: Input<A>, taskOptions: BatchTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const [iterator, interval] = this.#processGlobalTaskInput(input, taskOptions);
+    static async mapSettled<A, B>(taskOptions: BatchTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
+        const [iterator, interval] = this.#processGlobalTaskInput(taskOptions);
         const results: PromiseSettledResult<B>[] = new Array();
 
         await this.#runGlobalTask(
@@ -147,18 +159,15 @@ export class Batch extends SharedBase {
      * Returns the elements that meet the condition specified in the predicate function, but it search in batches.
      *
      * @template A Input Type.
-     * @param {Input<A>} input Arguments to pass to the predicate for each call.
-     * @param {BatchFilterOptions<A>} taskOptions Task Options.
+     * @param {BatchPredicateOptions<A>} taskOptions Task Options.
      * @returns {Promise<A[]>}
      */
-    static async filter<A>(input: Input<A>, taskOptions: BatchFilterOptions<A>): Promise<A[]> {
+    static async filter<A>(taskOptions: BatchPredicateOptions<A>): Promise<A[]> {
+        Batch.#validatePredicate(taskOptions);
+
         const results: A[] = new Array();
 
-        const fieldType = typeof taskOptions.predicate;
-        if (fieldType !== 'function')
-            throw new TypeError("Expected \`taskOptions.predicate(" + fieldType + ")\` to be a \`function\`");
-
-        await Batch.forEach(input, {
+        await Batch.forEach({
             ...taskOptions,
             task: async (item) => {
                 if (await taskOptions.predicate(item))
