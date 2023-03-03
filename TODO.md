@@ -1,4 +1,11 @@
-# TODO 
+# TODO
+
+## 2.0.0
+
+- [x] Add `find`, `every` and `some` methods to global methods.
+- [x] Remove `input` from global methods arguments
+- [x] Add `input` to taskOptions on all global methods.
+- [ ] Update docs.
 
 ## 1.2.0
 

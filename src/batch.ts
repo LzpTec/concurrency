@@ -178,6 +178,84 @@ export class Batch extends SharedBase {
         return results;
     }
 
+    /**
+     * Determines whether the specified `predicate` function returns true for any element of `input`.
+     * 
+     * @template A Input Type.
+     * @param {BatchPredicateOptions<A>} taskOptions Task Options.
+     * @returns {Promise<boolean>}
+     */
+    static async some<A>(taskOptions: BatchPredicateOptions<A>): Promise<boolean> {
+        Batch.#validatePredicate(taskOptions);
+
+        let result = false;
+
+        await Batch
+            .forEach({
+                ...taskOptions,
+                task: async (item) => {
+                    if (await taskOptions.predicate(item)) {
+                        result = true;
+                        return interrupt;
+                    }
+                }
+            });
+
+        return result;
+    }
+
+    /**
+     * Returns the value of the first element of `input` where `predicate` is true, and undefined otherwise.
+     * 
+     * @template A Input Type.
+     * @param {BatchPredicateOptions<A>} taskOptions Task Options.
+     * @returns {Promise<A | undefined>}
+     */
+    static async find<A>(taskOptions: BatchPredicateOptions<A>): Promise<A | undefined> {
+        Batch.#validatePredicate(taskOptions);
+
+        let result;
+
+        await Batch
+            .forEach({
+                ...taskOptions,
+                task: async (item) => {
+                    if (await taskOptions.predicate(item)) {
+                        result = item;
+                        return interrupt;
+                    }
+                }
+            });
+
+        return result;
+    }
+
+    /**
+     * Determines whether all the elements of `input` satisfy the specified `predicate`.
+     * 
+     * @template A Input Type.
+     * @param {BatchPredicateOptions<A>} taskOptions Task Options.
+     * @returns {Promise<boolean>}
+     */
+    static async every<A>(taskOptions: BatchPredicateOptions<A>): Promise<boolean> {
+        Batch.#validatePredicate(taskOptions);
+
+        let result = true;
+
+        await Batch
+            .forEach({
+                ...taskOptions,
+                task: async (item) => {
+                    if (!(await taskOptions.predicate(item))) {
+                        result = false;
+                        return interrupt;
+                    }
+                }
+            });
+
+        return result;
+    }
+
     #options: BatchCommonOptions;
     #currentRunning: number = 0;
     #queue: Queue<Job> = new Queue();
