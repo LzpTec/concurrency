@@ -14,7 +14,8 @@ const data = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 // Execute multiplication in batchs of 2
 // EX: 1,2 ... 3,4 ... 5,6 ... 7,8 ... 9
-const dataMultipliedBy2 = await Batch.map(data, {
+const dataMultipliedBy2 = await Batch.map({
+    input: data,
     batchSize: 2,
     task: (value) => value * 2
 });
@@ -44,7 +45,8 @@ const data = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 // Execute multiplication concurrently(Maximum of 2 execution per time)
 // EX: 1, 2 ... 3 ... 4,5 ... 6 ... 7 ... 8, 9
-const dataMultipliedBy2 = await Concurrency.map(data, {
+const dataMultipliedBy2 = await Concurrency.map({
+    input: data,
     maxConcurrency: 2,
     task: (value) => value * 2
 });
@@ -73,20 +75,20 @@ B: Task Output
 
 ## Batch(Static)
 
-### map\<A, B\>(input, taskOptions)
+### map\<A, B\>(taskOptions)
 Returns: `Promise<B>`
 
 Same as Promise.all(input.map(item => task(item))), but it waits for the first `batchSize` promises to finish before starting the next batch.
 
-#### input
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
 **Required**<br>
 Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
-
-#### taskOptions
-**Required**<br>
-Type: `Object`<br>
 
 #### taskOptions.batchSize
 **Required**<br>
@@ -105,20 +107,20 @@ Type: `number`<br>
 
 Interval between batches(in MS).
 
-### mapSettled\<A, B\>(input, taskOptions)
+### mapSettled\<A, B\>(taskOptions)
 Returns: `Promise<PromiseSettledResult<B>>`
 
 Same as Promise.allSettled(input.map(item => task(item))), but it waits for the first `batchSize` promises to finish before starting the next batch.
 
-#### input
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
 **Required**<br>
 Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
-
-#### taskOptions
-**Required**<br>
-Type: `Object`<br>
 
 #### taskOptions.batchSize
 **Required**<br>
@@ -137,22 +139,22 @@ Type: `number`<br>
 
 Interval between batches(in MS).
 
-### forEach\<A\>(input, taskOptions)
+### forEach\<A\>(taskOptions)
 
 Returns: `Promise<void>`
 
 Performs the specified task for each element in the input, but it waits for the first `batchSize` promises to finish before starting the next batch.
 Same as Batch.map, But it doesn't store/return the results.
 
-#### input
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
 **Required**<br>
 Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
-
-#### taskOptions
-**Required**<br>
-Type: `Object`<br>
 
 #### taskOptions.batchSize
 **Required**<br>
@@ -228,20 +230,20 @@ The task to run for each item.
 
 ## Concurrency(Static)
 
-### map\<A, B\>(input, taskOptions)
+### map\<A, B\>(taskOptions)
 Returns: `Promise<B>`
 
 Same as Promise.all(input.map(item => task(item))), but it limits the concurrent execution to `maxConcurrency`.
 
-#### input
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
 **Required**<br>
 Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
-
-#### taskOptions
-**Required**<br>
-Type: `Object`<br>
 
 #### taskOptions.maxConcurrency
 **Required**<br>
@@ -260,20 +262,20 @@ Type: `number`<br>
 
 Interval between jobs(in MS).
 
-### mapSettled\<A, B\>(input, taskOptions)
+### mapSettled\<A, B\>(taskOptions)
 Returns: `Promise<PromiseSettledResult<B>>`
 
 Same as Promise.allSettled(input.map(item => task(item))), but it limits the concurrent execution to `maxConcurrency`.
 
-#### input
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
 **Required**<br>
 Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
-
-#### taskOptions
-**Required**<br>
-Type: `Object`<br>
 
 #### taskOptions.maxConcurrency
 **Required**<br>
@@ -292,20 +294,20 @@ Type: `number`<br>
 
 Interval between jobs(in MS).
 
-### forEach\<A\>(input, taskOptions)
+### forEach\<A\>(taskOptions)
 Returns: `Promise<void>`
 
 Same as Batch.map, But it doesn't return the results
 
-#### input
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
 **Required**<br>
 Type: `Input<A>`<br>
 
 Arguments to pass to the task for each call.
-
-#### taskOptions
-**Required**<br>
-Type: `Object`<br>
 
 #### taskOptions.maxConcurrency
 **Required**<br>
