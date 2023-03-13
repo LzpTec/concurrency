@@ -256,6 +256,35 @@ export class Batch extends SharedBase {
         return result;
     }
 
+    /**
+     * This method groups the elements of the `input` according to the string values returned by a provided `task`. 
+     * 
+     * The returned object has separate properties for each group, containing arrays with the elements in the group. 
+     * 
+     * @template A Input Type.
+     * @param {BatchTaskOptions<A>} taskOptions Task Options.
+     * @returns {Promise<{string | symbol}>}
+     */
+    static async group<A>(taskOptions: BatchTaskOptions<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
+        const groups = new Map<string | symbol, A[]>();
+
+        await Batch
+            .forEach({
+                ...taskOptions,
+                task: async (item) => {
+                    const group = await taskOptions.task(item);
+
+                    console.log(item, group);
+                    if (groups.has(group))
+                        groups.get(group)!.push(item);
+                    else
+                        groups.set(group, [item]);
+                }
+            });
+
+        return Object.fromEntries(groups);
+    }
+
     #options: BatchCommonOptions;
     #currentRunning: number = 0;
     #queue: Queue<Job> = new Queue();

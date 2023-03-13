@@ -145,7 +145,9 @@ export abstract class SharedBase {
     }
 
     /**
-     * Determines whether all the elements of `input` satisfy the specified `predicate`.
+     * This method groups the elements of the `input` according to the string values returned by a provided `task`. 
+     * 
+     * The returned object has separate properties for each group, containing arrays with the elements in the group. 
      * 
      * @template A Input Type.
      * @param {Input<A>} input Arguments to pass to the task for each call.
