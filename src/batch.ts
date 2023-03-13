@@ -355,6 +355,7 @@ export class Batch extends SharedBase {
             await Promise.resolve();
             if (this.#currentRunning >= this.#options.batchSize) {
                 await this.#waitEvent.once();
+                await Promise.all(p);
                 p = [];
             }
         }
