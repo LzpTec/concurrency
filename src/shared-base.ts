@@ -144,4 +144,29 @@ export abstract class SharedBase {
         return result;
     }
 
+    /**
+     * Determines whether all the elements of `input` satisfy the specified `predicate`.
+     * 
+     * @template A Input Type.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
+     * @param {Task<A, string | symbol>} task A function to execute for each element in the `input`. It should return a value that can get coerced into a property key (string or symbol) indicating the group of the current element.
+     * @returns {Promise<{string | symbol}>}
+     */
+    async group<A>(input: Input<A>, task: Task<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
+        const groups = new Map<string | symbol, A[]>();
+
+        await this
+            .forEach(input, async (item) => {
+                const group = await task(item);
+
+                console.log(item, group);
+                if (groups.has(group))
+                    groups.get(group)!.push(item);
+                else
+                    groups.set(group, [item]);
+            });
+
+        return Object.fromEntries(groups);
+    }
+
 }

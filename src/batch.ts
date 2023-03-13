@@ -320,13 +320,11 @@ export class Batch extends SharedBase {
         if (fieldType !== 'function')
             throw new TypeError("Expected \`task(" + fieldType + ")\` to be a \`function\`");
 
-        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
-
-        return [iterator]
+        return isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
     }
 
     async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
-        const [iterator] = this.#processTaskInput(input, task);
+        const iterator = this.#processTaskInput(input, task);
 
         let p = [];
         let done = false;
@@ -366,7 +364,7 @@ export class Batch extends SharedBase {
     }
 
     async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const [iterator] = this.#processTaskInput(input, task);
+        const iterator = this.#processTaskInput(input, task);
         const results: PromiseSettledResult<B>[] = new Array();
 
         let idx = 0;

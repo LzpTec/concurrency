@@ -1,4 +1,8 @@
-import type { Node } from './types';
+type Node<T> = {
+    data: T;
+    next?: Node<T>;
+    prev?: Node<T>;
+};
 
 export class Queue<T> {
     private head?: Node<T>;

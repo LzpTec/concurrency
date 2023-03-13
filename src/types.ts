@@ -29,16 +29,3 @@ export type Input<A> = AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>;
  * @property {Function} reject
  */
 export type Job = { task: Function; resolve: Function; reject: Function; };
-
-/**
- * @template T
- * @typedef Node
- * @property {T} data
- * @property {Node<T>} [next]
- * @property {Node<T>} [prev]
- */
-export type Node<T> = {
-    data: T;
-    next?: Node<T>;
-    prev?: Node<T>;
-};
