@@ -21,7 +21,8 @@ const concurrencyInstance = new Concurrency({
 const map = async (bench: Bench) => {
     bench
         .add(`Batch#map - ${data.length} items - ${batchSize} items per batch`, async () => {
-            await Batch.map(data, {
+            await Batch.map({
+                input: data,
                 batchSize,
                 task: async (item) => new Promise<number>((resolve) => {
                     setTimeout(() => resolve(item + 1), 5 + (idx * 5));
@@ -29,7 +30,8 @@ const map = async (bench: Bench) => {
             });
         })
         .add(`Concurrency#map - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
-            await Concurrency.map(data, {
+            await Concurrency.map({
+                input: data,
                 maxConcurrency,
                 task: async (item) => new Promise<number>((resolve) => {
                     setTimeout(() => resolve(item + 1), 5 + (idx * 5));
@@ -62,7 +64,8 @@ map;
 const mapSettled = async (bench: Bench) => {
     bench
         .add(`Batch#mapSettled - ${data.length} items - ${batchSize} items per batch`, async () => {
-            await Batch.mapSettled(data, {
+            await Batch.mapSettled({
+                input: data,
                 batchSize,
                 task: async (item) => new Promise<number>((resolve) => {
                     setTimeout(() => resolve(item + 1), 5 + (idx * 5));
@@ -70,7 +73,8 @@ const mapSettled = async (bench: Bench) => {
             });
         })
         .add(`Concurrency#mapSettled - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
-            await Concurrency.mapSettled(data, {
+            await Concurrency.mapSettled({
+                input: data,
                 maxConcurrency,
                 task: async (item) => new Promise<number>((resolve) => {
                     setTimeout(() => resolve(item + 1), 5 + (idx * 5));
@@ -91,7 +95,8 @@ mapSettled;
 const forEach = async (bench: Bench) => {
     bench
         .add(`Batch#forEach - ${data.length} items - ${batchSize} items per batch`, async () => {
-            await Batch.forEach(data, {
+            await Batch.forEach({
+                input: data,
                 batchSize,
                 task: async (item) => new Promise<void>((resolve) => {
                     setTimeout(() => { item + 1; resolve() }, 5 + (idx * 5));
@@ -99,7 +104,8 @@ const forEach = async (bench: Bench) => {
             });
         })
         .add(`Concurrency#forEach - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
-            await Concurrency.forEach(data, {
+            await Concurrency.forEach({
+                input: data,
                 maxConcurrency,
                 task: async (item) => new Promise<void>((resolve) => {
                     setTimeout(() => { item + 1; resolve() }, 5 + (idx * 5));
@@ -121,7 +127,8 @@ const filterSymbol = Symbol();
 const filter = async (bench: Bench) => {
     bench
         .add(`Batch#filter - ${data.length} items - ${batchSize} items per batch`, async () => {
-            await Batch.filter(data, {
+            await Batch.filter({
+                input: data,
                 batchSize,
                 predicate: async (item) => new Promise<boolean>((resolve) => {
                     setTimeout(() => resolve(item % 2 === 0), 5 + (idx * 5));
@@ -129,7 +136,8 @@ const filter = async (bench: Bench) => {
             });
         })
         .add(`Concurrency#filter - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
-            await Concurrency.filter(data, {
+            await Concurrency.filter({
+                input: data,
                 maxConcurrency,
                 predicate: async (item) => new Promise<boolean>((resolve) => {
                     setTimeout(() => resolve(item % 2 === 0), 5 + (idx * 5));

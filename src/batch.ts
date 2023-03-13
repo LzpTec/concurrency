@@ -312,7 +312,7 @@ export class Batch extends SharedBase {
         if (this.#currentRunning >= this.#options.batchSize)
             return;
 
-        const jobs = new Array();
+        let jobs = [];
         while (!this.#queue.isEmpty()) {
             const job = this.#queue.dequeue()!;
 
@@ -324,6 +324,7 @@ export class Batch extends SharedBase {
             this.#currentRunning++;
             if (this.#currentRunning >= this.#options.batchSize) {
                 await Promise.all(jobs);
+                jobs = [];
 
                 await new Promise<void>((resolve) => {
                     if (typeof this.#options.batchInterval === 'number' && this.#options.batchInterval > 0)
@@ -332,8 +333,8 @@ export class Batch extends SharedBase {
                     return resolve();
                 });
 
-                this.#waitEvent.emit();
                 this.#currentRunning = 0;
+                this.#waitEvent.emit();
             }
         }
     }
@@ -355,42 +356,42 @@ export class Batch extends SharedBase {
     async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
         const iterator = this.#processTaskInput(input, task);
 
-        let p = [];
+        const p: Set<Promise<any>> = new Set();
         let done = false;
 
-        let error: any;
         while (!done) {
-            if (error)
-                throw error;
+            const job = this
+                .#runJob(async () => {
+                    const res = await iterator.next();
+                    if (res.done) {
+                        done = true;
+                        return;
+                    }
 
-            p
-                .push(
-                    this.#runJob(async () => {
-                        const res = await iterator.next();
-                        if (res.done) {
-                            done = true;
-                            return;
-                        }
+                    const result = await task(await res.value);
+                    if (result === interrupt) {
+                        done = true;
+                        iterator.return?.();
+                        return;
+                    }
+                })
+                .then(() => {
+                    p.delete(job);
+                })
+                .catch(err => {
+                    done = true;
+                    throw err;
+                });
 
-                        const result = await task(await res.value);
-                        if (result === interrupt) {
-                            done = true;
-                            iterator.return?.();
-                            return;
-                        }
-                    }).catch(err => error = err)
-                );
+            p.add(job);
 
             await Promise.resolve();
             if (this.#currentRunning >= this.#options.batchSize) {
                 await this.#waitEvent.once();
-                await Promise.all(p);
-                p = [];
             }
         }
 
-        if (p.length > 0)
-            await Promise.all(p);
+        await Promise.all(p);
     }
 
     async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
