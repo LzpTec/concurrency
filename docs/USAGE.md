@@ -78,7 +78,7 @@ B: Task Output
 ### map\<A, B\>(taskOptions)
 Returns: `Promise<B>`
 
-Same as Promise.all(input.map(item => task(item))), but it waits for the first `batchSize` promises to finish before starting the next batch.
+Same as Promise.all, but it waits for the first `batchSize` promises to finish before starting the next batch.
 
 #### taskOptions
 **Required**<br>
@@ -110,7 +110,7 @@ Interval between batches(in MS).
 ### mapSettled\<A, B\>(taskOptions)
 Returns: `Promise<PromiseSettledResult<B>>`
 
-Same as Promise.allSettled(input.map(item => task(item))), but it waits for the first `batchSize` promises to finish before starting the next batch.
+Same as Promise.allSettled, but it waits for the first `batchSize` promises to finish before starting the next batch.
 
 #### taskOptions
 **Required**<br>
@@ -140,7 +140,6 @@ Type: `number`<br>
 Interval between batches(in MS).
 
 ### forEach\<A\>(taskOptions)
-
 Returns: `Promise<void>`
 
 Performs the specified task for each element in the input, but it waits for the first `batchSize` promises to finish before starting the next batch.
@@ -167,6 +166,134 @@ The task to run for each item.
 Type: `Task<A, B>`<br>
 
 The task to run for each item.
+
+#### taskOptions.batchInterval
+Type: `number`<br>
+
+Interval between batches(in MS).
+
+### filter\<A\>(taskOptions)
+Returns: `Promise<A>`
+
+Returns the elements that meet the condition specified in the predicate function, but it search in batches.
+
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
+**Required**<br>
+Type: `Input<A>`<br>
+
+Arguments to pass to the task for each call.
+
+#### taskOptions.batchSize
+**Required**<br>
+Type: `number`<br>
+
+The task to run for each item.
+
+#### taskOptions.predicate
+**Required**<br>
+Type: `Task<A, boolean>`<br>
+
+The predicate function is called one time for each element in the `input`.
+
+#### taskOptions.batchInterval
+Type: `number`<br>
+
+Interval between batches(in MS).
+
+### some\<A\>(taskOptions)
+Returns: `Promise<boolean>`
+
+Determines whether the specified `predicate` function returns true for any element of `input`.
+
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
+**Required**<br>
+Type: `Input<A>`<br>
+
+Arguments to pass to the task for each call.
+
+#### taskOptions.batchSize
+**Required**<br>
+Type: `number`<br>
+
+The task to run for each item.
+
+#### taskOptions.predicate
+**Required**<br>
+Type: `Task<A, boolean>`<br>
+
+The predicate function is called one time for each element in the `input`.
+
+#### taskOptions.batchInterval
+Type: `number`<br>
+
+Interval between batches(in MS).
+
+### find\<A\>(taskOptions)
+Returns: `Promise<A | undefined>`
+
+Returns the value of the first element of `input` where `predicate` is true, and undefined otherwise.
+
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
+**Required**<br>
+Type: `Input<A>`<br>
+
+Arguments to pass to the task for each call.
+
+#### taskOptions.batchSize
+**Required**<br>
+Type: `number`<br>
+
+The task to run for each item.
+
+#### taskOptions.predicate
+**Required**<br>
+Type: `Task<A, boolean>`<br>
+
+The predicate function is called one time for each element in the `input`.
+
+#### taskOptions.batchInterval
+Type: `number`<br>
+
+Interval between batches(in MS).
+
+### every\<A\>(taskOptions)
+Returns: `Promise<boolean>`
+
+Determines whether all the elements of `input` satisfy the specified `predicate`.
+
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
+**Required**<br>
+Type: `Input<A>`<br>
+
+Arguments to pass to the task for each call.
+
+#### taskOptions.batchSize
+**Required**<br>
+Type: `number`<br>
+
+The task to run for each item.
+
+#### taskOptions.predicate
+**Required**<br>
+Type: `Task<A, boolean>`<br>
+
+The predicate function is called one time for each element in the `input`.
 
 #### taskOptions.batchInterval
 Type: `number`<br>
@@ -297,7 +424,8 @@ Interval between jobs(in MS).
 ### forEach\<A\>(taskOptions)
 Returns: `Promise<void>`
 
-Same as Batch.map, But it doesn't return the results
+Performs the specified task for each element in the input, but it limits the concurrent execution to `maxConcurrency`.
+Same as Concurrency.map, But it doesn't store/return the results.
 
 #### taskOptions
 **Required**<br>
@@ -320,6 +448,134 @@ The max concurrency.
 Type: `Task<A, any>`<br>
 
 The task to run for each item.
+
+#### taskOptions.concurrencyInterval
+Type: `number`<br>
+
+Interval between jobs(in MS).
+
+### filter\<A\>(taskOptions)
+Returns: `Promise<A>`
+
+Returns the elements that meet the condition specified in the predicate function, but it limits the concurrent execution to `maxConcurrency`.
+
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
+**Required**<br>
+Type: `Input<A>`<br>
+
+Arguments to pass to the task for each call.
+
+#### taskOptions.maxConcurrency
+**Required**<br>
+Type: `number`<br>
+
+The max concurrency.
+
+#### taskOptions.predicate
+**Required**<br>
+Type: `Task<A, boolean>`<br>
+
+The predicate function is called one time for each element in the `input`.
+
+#### taskOptions.concurrencyInterval
+Type: `number`<br>
+
+Interval between jobs(in MS).
+
+### some\<A\>(taskOptions)
+Returns: `Promise<boolean>`
+
+Determines whether the specified `predicate` function returns true for any element of `input`.
+
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
+**Required**<br>
+Type: `Input<A>`<br>
+
+Arguments to pass to the task for each call.
+
+#### taskOptions.maxConcurrency
+**Required**<br>
+Type: `number`<br>
+
+The max concurrency.
+
+#### taskOptions.predicate
+**Required**<br>
+Type: `Task<A, boolean>`<br>
+
+The predicate function is called one time for each element in the `input`.
+
+#### taskOptions.concurrencyInterval
+Type: `number`<br>
+
+Interval between jobs(in MS).
+
+### find\<A\>(taskOptions)
+Returns: `Promise<A | undefined>`
+
+Returns the value of the first element of `input` where `predicate` is true, and undefined otherwise.
+
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
+**Required**<br>
+Type: `Input<A>`<br>
+
+Arguments to pass to the task for each call.
+
+#### taskOptions.maxConcurrency
+**Required**<br>
+Type: `number`<br>
+
+The max concurrency.
+
+#### taskOptions.predicate
+**Required**<br>
+Type: `Task<A, boolean>`<br>
+
+The predicate function is called one time for each element in the `input`.
+
+#### taskOptions.concurrencyInterval
+Type: `number`<br>
+
+Interval between jobs(in MS).
+
+### every\<A\>(taskOptions)
+Returns: `Promise<boolean>`
+
+Determines whether all the elements of `input` satisfy the specified `predicate`.
+
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
+**Required**<br>
+Type: `Input<A>`<br>
+
+Arguments to pass to the task for each call.
+
+#### taskOptions.maxConcurrency
+**Required**<br>
+Type: `number`<br>
+
+The max concurrency.
+
+#### taskOptions.predicate
+**Required**<br>
+Type: `Task<A, boolean>`<br>
+
+The predicate function is called one time for each element in the `input`.
 
 #### taskOptions.concurrencyInterval
 Type: `number`<br>

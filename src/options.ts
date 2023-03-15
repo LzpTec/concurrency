@@ -31,7 +31,7 @@ export interface BatchPredicateOptions<A> extends BatchCommonOptions {
     input: Input<A>;
 
     /**
-     * The filter method calls the predicate function one time for each element in the array.
+     * The predicate function is called one time for each element in the `input`.
      */
     predicate: Task<A, boolean>;
 }
@@ -67,7 +67,7 @@ export interface ConcurrencyPredicateOptions<A> extends ConcurrencyCommonOptions
     input: Input<A>;
 
     /**
-     * The filter method calls the predicate function one time for each element in the array.
+     * The predicate function is called one time for each element in the `input`.
      */
     predicate: Task<A, boolean>;
 }
