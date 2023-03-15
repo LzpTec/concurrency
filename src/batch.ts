@@ -353,7 +353,7 @@ export class Batch extends SharedBase {
         return isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
     }
 
-    async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
+    override async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
         const iterator = this.#processTaskInput(input, task);
 
         const p: Set<Promise<any>> = new Set();
@@ -394,7 +394,7 @@ export class Batch extends SharedBase {
         await Promise.all(p);
     }
 
-    async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+    override async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
         const iterator = this.#processTaskInput(input, task);
         const results: PromiseSettledResult<B>[] = new Array();
 
@@ -441,7 +441,7 @@ export class Batch extends SharedBase {
         return results;
     }
 
-    async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
+    override async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
         return await this.#runJob(() => Promise.resolve(task(...args)));
     }
 
