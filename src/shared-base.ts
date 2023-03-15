@@ -166,7 +166,6 @@ export abstract class SharedBase<Options> {
             .forEach(input, async (item) => {
                 const group = await task(item);
 
-                console.log(item, group);
                 if (groups.has(group))
                     groups.get(group)!.push(item);
                 else

@@ -279,7 +279,6 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
                 task: async (item) => {
                     const group = await taskOptions.task(item);
 
-                    console.log(item, group);
                     if (groups.has(group))
                         groups.get(group)!.push(item);
                     else
