@@ -5,7 +5,7 @@ import type { BatchCommonOptions, BatchPredicateOptions, BatchTaskOptions } from
 import { interrupt, SharedBase } from './shared-base';
 import type { Input, Job, RunnableTask, Task } from './types';
 
-export class Batch extends SharedBase {
+export class Batch extends SharedBase<BatchCommonOptions> {
 
     static #processGlobalTaskInput<A, B>(
         taskOptions: BatchTaskOptions<A, B>
@@ -445,7 +445,7 @@ export class Batch extends SharedBase {
         return await this.#runJob(() => Promise.resolve(task(...args)));
     }
 
-    set options(options: BatchCommonOptions) {
+    override set options(options: BatchCommonOptions) {
         if (typeof options.batchSize !== 'number' || !Number.isInteger(options.batchSize))
             throw new Error('Parameter `batchSize` invalid!');
 

@@ -5,7 +5,7 @@ import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, Concurrency
 import { interrupt, SharedBase } from './shared-base';
 import type { Input, Job, RunnableTask, Task } from './types';
 
-export class Concurrency extends SharedBase {
+export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     static #processGlobalTaskInput<A, B>(
         taskOptions: ConcurrencyTaskOptions<A, B>
@@ -437,7 +437,7 @@ export class Concurrency extends SharedBase {
         return await this.#runJob(() => Promise.resolve(task(...args)));
     }
 
-    set options(options: ConcurrencyCommonOptions) {
+    override set options(options: ConcurrencyCommonOptions) {
         if (typeof options.maxConcurrency !== 'number' || !Number.isInteger(options.maxConcurrency))
             throw new Error('Parameter `maxConcurrency` invalid!');
 

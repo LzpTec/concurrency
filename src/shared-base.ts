@@ -2,7 +2,7 @@ import { Input, RunnableTask, Task } from './types';
 
 export const interrupt = {};
 
-export abstract class SharedBase {
+export abstract class SharedBase<Options> {
 
     /**
      * Performs the specified `task` for each element in the input.
@@ -37,6 +37,11 @@ export abstract class SharedBase {
      * @returns {Promise<B>}
      */
     abstract run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B>;
+
+    /**
+     * Instance Options.
+     */
+    abstract set options(options: Options);
 
     /**
      * Calls a defined `task` function on each element of the `input`, and returns an array that contains the results.
