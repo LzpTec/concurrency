@@ -305,7 +305,7 @@ Interval between batches(in MS).
 ### map\<A, B\>(input, task)
 Returns: `Promise<B>`
 
-Same as Promise.all(input.map(item => task(item))), but it waits for the first `batchSize` promises to finish before starting the next batch.
+Calls a defined `task` function on each element of the `input`, and returns an array that contains the results.
 
 #### input
 **Required**<br>
@@ -322,7 +322,7 @@ The task to run for each item.
 ### mapSettled\<A, B\>(input, task)
 Returns: `Promise<PromiseSettledResult<B>>`
 
-Same as Promise.allSettled(input.map(item => task(item))), but it waits for the first `batchSize` promises to finish before starting the next batch.
+Same as `Promise.allSettled` with a map.
 
 #### input
 **Required**<br>
@@ -337,11 +337,10 @@ Type: `Task<A, B>`<br>
 The task to run for each item.
 
 ### forEach\<A\>(input, task)
-
 Returns: `Promise<void>`
 
-Performs the specified task for each element in the input, but it waits for the first `batchSize` promises to finish before starting the next batch.
-Same as Batch.map, But it doesn't store/return the results.
+Performs the specified `task` for each element in the input.
+Same as map, But it doesn't store/return the results.
 
 #### input
 **Required**<br>
@@ -587,7 +586,7 @@ Interval between jobs(in MS).
 ### map\<A, B\>(input, task)
 Returns: `Promise<B>`
 
-Same as Promise.all(input.map(item => task(item))), but it limits the concurrent execution to `maxConcurrency`.
+Calls a defined `task` function on each element of the `input`, and returns an array that contains the results.
 
 #### input
 **Required**<br>
@@ -604,7 +603,7 @@ The task to run for each item.
 ### mapSettled\<A, B\>(input, task)
 Returns: `Promise<PromiseSettledResult<B>>`
 
-Same as Promise.allSettled(input.map(item => task(item))), but it limits the concurrent execution to `maxConcurrency`.
+Same as `Promise.allSettled` with a map.
 
 #### input
 **Required**<br>
@@ -619,10 +618,10 @@ Type: `Task<A, B>`<br>
 The task to run for each item.
 
 ### forEach\<A\>(input, task)
-
 Returns: `Promise<void>`
 
-Same as Batch.map, But it doesn't return the results
+Performs the specified `task` for each element in the input.
+Same as map, But it doesn't store/return the results.
 
 #### input
 **Required**<br>
