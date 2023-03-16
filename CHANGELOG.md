@@ -2,6 +2,50 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [2.0.0](https://github.com/LzpTec/concurrency/compare/v1.2.0...v2.0.0) (2023-03-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* Removed input argument from static methods.
+
+### Features
+
+* Add `find`, `every` and `some` methods to global methods. ([9381217](https://github.com/LzpTec/concurrency/commit/93812173888dfb29af093970304e76108ef0352a))
+* Implemented `group` method to batch and concurrency instances. ([1b548a4](https://github.com/LzpTec/concurrency/commit/1b548a4cc8a009719708f52b90cdfaf0eb056e2f))
+* Implemented `group` method to batch and concurrency. ([dc3205e](https://github.com/LzpTec/concurrency/commit/dc3205e4ba6788cb452e333494170e8009db4ef3))
+* Removed input argument from static methods. ([a29ad6d](https://github.com/LzpTec/concurrency/commit/a29ad6d2491ce37ed13e803f895d03b866a0da8c))
+
+
+### Bug Fixes
+
+* Batch instance not waiting all jobs. ([ca00e6d](https://github.com/LzpTec/concurrency/commit/ca00e6db29a74e36ad86ef3d06e62efbfb562e71))
+
+
+### Docs
+
+* Add `find`, `every` and `some` global documentation. ([472d737](https://github.com/LzpTec/concurrency/commit/472d737df72a9f9d0781b88d24edd8b59c28fb5f))
+* Update `map`, `mapSettled` and `forEach` docs. ([cc0f3e5](https://github.com/LzpTec/concurrency/commit/cc0f3e540b839c501e892d5e76b064355ab56acc))
+* Update TODO. ([ff2ac0e](https://github.com/LzpTec/concurrency/commit/ff2ac0e45a6ae7952646415dfefc111b36895a80))
+* Update USAGE.md to use new args. ([e5e89ad](https://github.com/LzpTec/concurrency/commit/e5e89ad10fb3f0a3ac551a48c3e8efa82542a420))
+
+
+### Refactor
+
+* Add `options` to base class. ([63b8a85](https://github.com/LzpTec/concurrency/commit/63b8a85b48c4a68d5ee975a41c618b288b9152f8))
+* Add override modifier to abstract methods. ([50674f5](https://github.com/LzpTec/concurrency/commit/50674f506406fdba85a885209c1973885877d151))
+* Change internal batch instance. ([ef7cb64](https://github.com/LzpTec/concurrency/commit/ef7cb6493ca8dba5ef2e0257d8c7496401285cd1))
+
+
+### Misc
+
+* Remove `console.log` calls. ([6ff4d0d](https://github.com/LzpTec/concurrency/commit/6ff4d0db25b8c977ccacdcf8d79f510d18a4774f))
+
+
+### Dependencies
+
+* Update deps. ([632bf48](https://github.com/LzpTec/concurrency/commit/632bf48509db09c3fc68019239c780cf9ad743a7))
+
 ## [1.2.0](https://github.com/LzpTec/concurrency/compare/v1.1.0...v1.2.0) (2023-02-16)
 
 

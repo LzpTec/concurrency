@@ -3,7 +3,7 @@ lockfileVersion: 5.4
 specifiers:
   '@types/node': ^16.11.00
   ava: 5.2.0
-  commit-and-tag-version: 11.1.0
+  commit-and-tag-version: 11.2.0
   ts-node: ^10.9.1
   tslib: 2.5.0
   tsup: 6.6.3
@@ -12,7 +12,7 @@ specifiers:
 devDependencies:
   '@types/node': 16.11.68
   ava: 5.2.0
-  commit-and-tag-version: 11.1.0
+  commit-and-tag-version: 11.2.0
   ts-node: 10.9.1_gmaempcqeno4l4ava7v2qcn3hi
   tslib: 2.5.0
   tsup: 6.6.3_6qtx7vkbdhwvdm4crzlegk4mvi
@@ -676,8 +676,8 @@ packages:
     engines: {node: '>= 6'}
     dev: true
 
-  /commit-and-tag-version/11.1.0:
-    resolution: {integrity: sha512-sVia6zoGNJGC69KhGEautLrShVhuYMhLGKt56mRzIkFJob78n+9DWNZEc7D7nZ1gjXJiAMgIqn2qHk/p3FuIPw==}
+  /commit-and-tag-version/11.2.0:
+    resolution: {integrity: sha512-cPMEvxIayRCTGw3k9WyRhGcI1snPNoXLXtOxKIS/hCGgVQZJ/Jn2zT8wMrTJw7kfqbWNA/kOukeIOHAJ+ZWy8g==}
     engines: {node: '>=14'}
     hasBin: true
     dependencies:

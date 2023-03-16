@@ -2,7 +2,7 @@ import { Input, RunnableTask, Task } from './types';
 
 export const interrupt = {};
 
-export abstract class SharedBase {
+export abstract class SharedBase<Options> {
 
     /**
      * Performs the specified `task` for each element in the input.
@@ -37,6 +37,11 @@ export abstract class SharedBase {
      * @returns {Promise<B>}
      */
     abstract run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B>;
+
+    /**
+     * Instance Options.
+     */
+    abstract set options(options: Options);
 
     /**
      * Calls a defined `task` function on each element of the `input`, and returns an array that contains the results.
@@ -142,6 +147,32 @@ export abstract class SharedBase {
             });
 
         return result;
+    }
+
+    /**
+     * This method groups the elements of the `input` according to the string values returned by a provided `task`. 
+     * 
+     * The returned object has separate properties for each group, containing arrays with the elements in the group. 
+     * 
+     * @template A Input Type.
+     * @param {Input<A>} input Arguments to pass to the task for each call.
+     * @param {Task<A, string | symbol>} task A function to execute for each element in the `input`. It should return a value that can get coerced into a property key (string or symbol) indicating the group of the current element.
+     * @returns {Promise<{string | symbol}>}
+     */
+    async group<A>(input: Input<A>, task: Task<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
+        const groups = new Map<string | symbol, A[]>();
+
+        await this
+            .forEach(input, async (item) => {
+                const group = await task(item);
+
+                if (groups.has(group))
+                    groups.get(group)!.push(item);
+                else
+                    groups.set(group, [item]);
+            });
+
+        return Object.fromEntries(groups);
     }
 
 }

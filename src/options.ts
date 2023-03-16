@@ -1,4 +1,4 @@
-import type { Task } from './types';
+import type { Input, Task } from './types';
 
 export interface BatchCommonOptions {
     /**
@@ -14,14 +14,24 @@ export interface BatchCommonOptions {
 
 export interface BatchTaskOptions<A, B> extends BatchCommonOptions {
     /**
+     * Arguments to pass to the task for each call.
+     */
+    input: Input<A>;
+
+    /**
      * The task to run for each item.
      */
     task: Task<A, B>;
 }
 
-export interface BatchFilterOptions<A> extends BatchCommonOptions {
+export interface BatchPredicateOptions<A> extends BatchCommonOptions {
     /**
-     * The filter method calls the predicate function one time for each element in the array.
+     * Arguments to pass to the predicate for each call.
+     */
+    input: Input<A>;
+
+    /**
+     * The predicate function is called one time for each element in the `input`.
      */
     predicate: Task<A, boolean>;
 }
@@ -40,14 +50,24 @@ export interface ConcurrencyCommonOptions {
 
 export interface ConcurrencyTaskOptions<A, B> extends ConcurrencyCommonOptions {
     /**
+     * Arguments to pass to the task for each call.
+     */
+    input: Input<A>;
+
+    /**
      * The task to run for each item.
      */
     task: Task<A, B>;
 }
 
-export interface ConcurrencyFilterOptions<A> extends ConcurrencyCommonOptions {
+export interface ConcurrencyPredicateOptions<A> extends ConcurrencyCommonOptions {
     /**
-     * The filter method calls the predicate function one time for each element in the array.
+     * Arguments to pass to the predicate for each call.
+     */
+    input: Input<A>;
+
+    /**
+     * The predicate function is called one time for each element in the `input`.
      */
     predicate: Task<A, boolean>;
 }

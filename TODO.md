@@ -1,10 +1,15 @@
 # TODO
 
-## X.X.X
+## 2.0.0
 
-- [ ] Add examples.
-- [ ] Create tests.
-- [ ] Reduce project size.
+- [x] Add `find`, `every` and `some` methods to global methods.
+- [x] Remove `input` from global methods arguments
+- [x] Add `input` to taskOptions on all global methods.
+- [ ] Update docs.
+
+## 1.2.0
+
+- [x] Reduce project size.
 
 ## 1.0.0
 

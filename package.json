@@ -1,6 +1,6 @@
 {
   "name": "@lzptec/concurrency",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "A Lightweight concurrency manager",
   "author": "André Posso <admin@lzptec.com>",
   "license": "MIT",
@@ -31,7 +31,7 @@
   "devDependencies": {
     "@types/node": "^16.11.00",
     "ava": "5.2.0",
-    "commit-and-tag-version": "11.1.0",
+    "commit-and-tag-version": "11.2.0",
     "ts-node": "^10.9.1",
     "tslib": "2.5.0",
     "tsup": "6.6.3",
