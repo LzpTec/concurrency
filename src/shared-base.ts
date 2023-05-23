@@ -3,6 +3,20 @@ import { Input, RunnableTask, Task } from './types';
 
 export const interrupt = {};
 
+export const processTaskInput = <A, B>(input: Input<A>, task: Task<A, B>) => {
+    const isAsync = isAsyncIterator(input);
+    const isSync = isIterator(input);
+
+    if (!isAsync && !isSync)
+        throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+
+    const fieldType = typeof task;
+    if (fieldType !== 'function')
+        throw new TypeError("Expected \`task(" + fieldType + ")\` to be a \`function\`");
+
+    return isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+};
+
 export abstract class SharedBase<Options> {
 
     /**
@@ -174,20 +188,6 @@ export abstract class SharedBase<Options> {
             });
 
         return Object.fromEntries(groups);
-    }
-
-    protected processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) {
-        const isAsync = isAsyncIterator(input);
-        const isSync = isIterator(input);
-
-        if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
-
-        const fieldType = typeof task;
-        if (fieldType !== 'function')
-            throw new TypeError("Expected \`task(" + fieldType + ")\` to be a \`function\`");
-
-        return isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
     }
 
 }

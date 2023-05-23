@@ -1,7 +1,7 @@
 import { Queue } from './collections';
 import { Event } from './event-emitter';
 import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './options';
-import { interrupt, SharedBase } from './shared-base';
+import { interrupt, processTaskInput, SharedBase } from './shared-base';
 import type { Input, Job, RunnableTask, Task } from './types';
 
 export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
@@ -150,7 +150,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     override async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
-        const iterator = this.processTaskInput(input, task);
+        const iterator = processTaskInput(input, task);
 
         let p = [];
         let done = false;
@@ -184,7 +184,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     override async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const iterator = this.processTaskInput(input, task);
+        const iterator = processTaskInput(input, task);
         const results: PromiseSettledResult<B>[] = new Array();
 
         let idx = 0;
