@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [2.0.1](https://github.com/LzpTec/concurrency/compare/v2.0.0...v2.0.1) (2023-05-23)
+
+
+### Bug Fixes
+
+* Input params in map and mapSettled. ([640544e](https://github.com/LzpTec/concurrency/commit/640544e1239d8aa9d00cc0bb43705bb4a8d837e5))
+
 ## [2.0.0](https://github.com/LzpTec/concurrency/compare/v1.2.0...v2.0.0) (2023-03-15)
 
 

@@ -387,7 +387,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
             await Promise.all(p);
     }
 
-    override async mapSettled<A, B>(input: A[], task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+    override async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
         const [iterator] = this.#processTaskInput(input, task);
         const results: PromiseSettledResult<B>[] = new Array();
 
