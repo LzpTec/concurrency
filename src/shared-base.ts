@@ -25,7 +25,7 @@ export abstract class SharedBase<Options> {
      * @param {Task<A, B>} task The task to run for each item.
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
-    abstract mapSettled<A, B>(input: A[], task: Task<A, B>): Promise<PromiseSettledResult<B>[]>;
+    abstract mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]>;
 
     /**
      * Performs a specified task.
@@ -52,7 +52,7 @@ export abstract class SharedBase<Options> {
      * @param {Task<A, B>} task The task to run for each item.
      * @returns {Promise<B[]>}
      */
-    async map<A, B>(input: A[], task: Task<A, B>): Promise<B[]> {
+    async map<A, B>(input: Input<A>, task: Task<A, B>): Promise<B[]> {
         const results: B[] = new Array();
 
         await this.forEach(input, async (item) => results.push(await task(item)));
