@@ -1,77 +1,10 @@
 import { Queue } from './collections';
 import { Event } from './event-emitter';
-import { isAsyncIterator, isIterator } from './guards';
 import type { BatchCommonOptions, BatchPredicateOptions, BatchTaskOptions } from './options';
 import { interrupt, SharedBase } from './shared-base';
 import type { Input, Job, RunnableTask, Task } from './types';
 
 export class Batch extends SharedBase<BatchCommonOptions> {
-
-    static #processGlobalTaskInput<A, B>(
-        taskOptions: BatchTaskOptions<A, B>
-    ): [AsyncIterator<A | Promise<A>> | Iterator<A | Promise<A>>, (() => Promise<void>) | undefined] {
-        const input = taskOptions.input;
-
-        const isAsync = isAsyncIterator(input);
-        const isSync = isIterator(input);
-
-        if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
-
-        if (typeof taskOptions.batchSize !== 'number' || !Number.isInteger(taskOptions.batchSize))
-            throw new TypeError("Expected \`taskOptions.batchSize(" + typeof taskOptions.batchSize + ")\` to be a integer \`number\`");
-
-        if (taskOptions.batchSize < 1)
-            throw new Error(`Parameter taskOptions.batchSize must be at least 1, got ${taskOptions.batchSize}!`);
-
-        const fieldType = typeof taskOptions.task;
-        if (fieldType !== 'function')
-            throw new TypeError("Expected \`taskOptions.task(" + fieldType + ")\` to be a \`function\`");
-
-        const iterator = isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
-        const interval = typeof taskOptions.batchInterval === 'number' && !isNaN(taskOptions.batchInterval) && taskOptions.batchInterval > 0
-            ? () => new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.batchInterval))
-            : undefined;
-
-        return [iterator, interval];
-    }
-
-    static async #runGlobalTask(
-        task: (index: number) => Promise<boolean>,
-        interval: (() => Promise<void>) | undefined,
-        taskOptions: BatchTaskOptions<any, any>
-    ) {
-        const wait = new Array(taskOptions.batchSize);
-
-        let idx = 0;
-        let done = false;
-
-        while (!done) {
-            for (let i = 0; i < taskOptions.batchSize; i++) {
-                if (done)
-                    break;
-
-                const index = idx;
-                idx++;
-
-                wait[i] = Promise
-                    .resolve(task(index))
-                    .then((isDone) => done = isDone);
-            }
-
-            await Promise
-                .all(wait);
-
-            await interval?.();
-        }
-    }
-
-    static async #validatePredicate<A>(taskOptions: BatchPredicateOptions<A>) {
-        const fieldType = typeof taskOptions.predicate;
-        if (fieldType !== 'function')
-            throw new TypeError("Expected \`taskOptions.predicate(" + fieldType + ")\` to be a \`function\`");
-    }
-
     /**
      * Performs the specified task for each element in the input, but it waits for the first `batchSize` promises to finish before starting the next batch.
      *
@@ -82,25 +15,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      * @returns {Promise<void>}
      */
     static async forEach<A>(taskOptions: BatchTaskOptions<A, any>): Promise<void> {
-        const [iterator, interval] = this.#processGlobalTaskInput(taskOptions);
-
-        await this.#runGlobalTask(
-            async () => {
-                const res = await iterator.next();
-                if (res.done)
-                    return true;
-
-                const result = await taskOptions.task(await res.value);
-                if (result === interrupt) {
-                    iterator.return?.();
-                    return true;
-                }
-
-                return false;
-            },
-            interval,
-            taskOptions
-        );
+        return new Batch(taskOptions).forEach(taskOptions.input, taskOptions.task);
     }
 
     /**
@@ -112,14 +27,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      * @returns {Promise<B[]>}
      */
     static async map<A, B>(taskOptions: BatchTaskOptions<A, B>): Promise<B[]> {
-        const results: B[] = new Array();
-
-        await Batch.forEach({
-            ...taskOptions,
-            task: async (item) => results.push(await taskOptions.task(item))
-        });
-
-        return results;
+        return new Batch(taskOptions).map(taskOptions.input, taskOptions.task);
     }
 
     /**
@@ -131,28 +39,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
     static async mapSettled<A, B>(taskOptions: BatchTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const [iterator, interval] = this.#processGlobalTaskInput(taskOptions);
-        const results: PromiseSettledResult<B>[] = new Array();
-
-        await this.#runGlobalTask(
-            async (index) => {
-                try {
-                    const res = await iterator.next();
-                    if (res.done)
-                        return true;
-
-                    results[index] = { status: 'fulfilled', value: await taskOptions.task(await res.value) };
-                    return false;
-                } catch (err) {
-                    results[index] = { status: 'rejected', reason: err }
-                    return false;
-                }
-            },
-            interval,
-            taskOptions
-        );
-
-        return results;
+        return new Batch(taskOptions).mapSettled(taskOptions.input, taskOptions.task);
     }
 
     /**
@@ -163,19 +50,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      * @returns {Promise<A[]>}
      */
     static async filter<A>(taskOptions: BatchPredicateOptions<A>): Promise<A[]> {
-        Batch.#validatePredicate(taskOptions);
-
-        const results: A[] = new Array();
-
-        await Batch.forEach({
-            ...taskOptions,
-            task: async (item) => {
-                if (await taskOptions.predicate(item))
-                    results.push(item);
-            }
-        });
-
-        return results;
+        return new Batch(taskOptions).filter(taskOptions.input, taskOptions.predicate);
     }
 
     /**
@@ -186,22 +61,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      * @returns {Promise<boolean>}
      */
     static async some<A>(taskOptions: BatchPredicateOptions<A>): Promise<boolean> {
-        Batch.#validatePredicate(taskOptions);
-
-        let result = false;
-
-        await Batch
-            .forEach({
-                ...taskOptions,
-                task: async (item) => {
-                    if (await taskOptions.predicate(item)) {
-                        result = true;
-                        return interrupt;
-                    }
-                }
-            });
-
-        return result;
+        return new Batch(taskOptions).some(taskOptions.input, taskOptions.predicate);
     }
 
     /**
@@ -212,22 +72,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      * @returns {Promise<A | undefined>}
      */
     static async find<A>(taskOptions: BatchPredicateOptions<A>): Promise<A | undefined> {
-        Batch.#validatePredicate(taskOptions);
-
-        let result;
-
-        await Batch
-            .forEach({
-                ...taskOptions,
-                task: async (item) => {
-                    if (await taskOptions.predicate(item)) {
-                        result = item;
-                        return interrupt;
-                    }
-                }
-            });
-
-        return result;
+        return new Batch(taskOptions).find(taskOptions.input, taskOptions.predicate);
     }
 
     /**
@@ -238,22 +83,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      * @returns {Promise<boolean>}
      */
     static async every<A>(taskOptions: BatchPredicateOptions<A>): Promise<boolean> {
-        Batch.#validatePredicate(taskOptions);
-
-        let result = true;
-
-        await Batch
-            .forEach({
-                ...taskOptions,
-                task: async (item) => {
-                    if (!(await taskOptions.predicate(item))) {
-                        result = false;
-                        return interrupt;
-                    }
-                }
-            });
-
-        return result;
+        return new Batch(taskOptions).every(taskOptions.input, taskOptions.predicate);
     }
 
     /**
@@ -266,22 +96,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      * @returns {Promise<{string | symbol}>}
      */
     static async group<A>(taskOptions: BatchTaskOptions<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
-        const groups = new Map<string | symbol, A[]>();
-
-        await Batch
-            .forEach({
-                ...taskOptions,
-                task: async (item) => {
-                    const group = await taskOptions.task(item);
-
-                    if (groups.has(group))
-                        groups.get(group)!.push(item);
-                    else
-                        groups.set(group, [item]);
-                }
-            });
-
-        return Object.fromEntries(groups);
+        return new Batch(taskOptions).group(taskOptions.input, taskOptions.task);
     }
 
     #options: BatchCommonOptions;
@@ -338,22 +153,8 @@ export class Batch extends SharedBase<BatchCommonOptions> {
         }
     }
 
-    #processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) {
-        const isAsync = isAsyncIterator(input);
-        const isSync = isIterator(input);
-
-        if (!isAsync && !isSync)
-            throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
-
-        const fieldType = typeof task;
-        if (fieldType !== 'function')
-            throw new TypeError("Expected \`task(" + fieldType + ")\` to be a \`function\`");
-
-        return isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
-    }
-
     override async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
-        const iterator = this.#processTaskInput(input, task);
+        const iterator = this.processTaskInput(input, task);
 
         const p: Set<Promise<any>> = new Set();
         let done = false;
@@ -394,7 +195,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     override async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const iterator = this.#processTaskInput(input, task);
+        const iterator = this.processTaskInput(input, task);
         const results: PromiseSettledResult<B>[] = new Array();
 
         let idx = 0;
