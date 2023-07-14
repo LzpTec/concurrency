@@ -50,6 +50,16 @@
       "require": "./dist/index.js",
       "import": "./dist/index.mjs",
       "types": "./dist/index.d.ts"
+    },
+    "./batch": {
+      "require": "./dist/batch.js",
+      "import": "./dist/batch.mjs",
+      "types": "./dist/batch.d.ts"
+    },
+    "./concurrency": {
+      "require": "./dist/concurrency.js",
+      "import": "./dist/concurrency.mjs",
+      "types": "./dist/concurrency.d.ts"
     }
   }
 }
