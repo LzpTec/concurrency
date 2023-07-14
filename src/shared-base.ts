@@ -1,11 +1,11 @@
 import { isAsyncIterator, isIterator } from './guards';
-import { Input, RunnableTask, Task } from './types';
+import type { Input, RunnableTask, Task } from './types';
 
 export const interrupt = {};
 
-export const processTaskInput = <A, B>(input: Input<A>, task: Task<A, B>) => {
-    const isAsync = isAsyncIterator(input);
-    const isSync = isIterator(input);
+export function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) {
+    const isAsync = isAsyncIterator<A>(input);
+    const isSync = isIterator<A>(input);
 
     if (!isAsync && !isSync)
         throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
@@ -15,7 +15,7 @@ export const processTaskInput = <A, B>(input: Input<A>, task: Task<A, B>) => {
         throw new TypeError("Expected \`task(" + fieldType + ")\` to be a \`function\`");
 
     return isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
-};
+}
 
 export abstract class SharedBase<Options> {
 
@@ -40,7 +40,26 @@ export abstract class SharedBase<Options> {
      * @param {Task<A, B>} task The task to run for each item.
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
-    abstract mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]>;
+    async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+        const results: PromiseSettledResult<B>[] = new Array();
+
+        await this.forEach(input, async (item: A) => {
+            try {
+                const value = await task(item);
+                results.push({
+                    status: 'fulfilled',
+                    value
+                });
+            } catch (reason) {
+                results.push({
+                    status: 'rejected',
+                    reason
+                });
+            }
+        });
+
+        return results;
+    }
 
     /**
      * Performs a specified task.

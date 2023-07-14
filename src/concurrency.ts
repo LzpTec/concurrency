@@ -113,13 +113,11 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     constructor(options: ConcurrencyCommonOptions) {
         super();
         this.options = options;
+        this.#queue.onItemAdded(() => this.#run());
     }
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {
-        return new Promise((resolve, reject) => {
-            this.#queue.enqueue({ task, resolve, reject });
-            this.#run();
-        });
+        return new Promise((resolve, reject) => this.#queue.enqueue({ task, resolve, reject }));
     }
 
     async #run() {
@@ -140,12 +138,9 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
             this.#currentRunning--;
             this.#waitEvent.emit();
 
-            await new Promise<void>((resolve) => {
-                if (typeof this.#options.concurrencyInterval === 'number' && this.#options.concurrencyInterval > 0)
-                    return setTimeout(() => resolve(), this.#options.concurrencyInterval);
-
-                return resolve();
-            });
+            if (typeof this.#options.concurrencyInterval === 'number' && this.#options.concurrencyInterval > 0) {
+                await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.concurrencyInterval));
+            }
         }
     }
 
@@ -175,12 +170,14 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning >= this.#options.maxConcurrency)
+            if (this.#currentRunning >= this.#options.maxConcurrency) {
                 await this.#waitEvent.once();
+            }
         }
 
-        if (p.length > 0)
+        if (p.length > 0) {
             await Promise.all(p);
+        }
     }
 
     override async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
@@ -218,12 +215,14 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning >= this.#options.maxConcurrency)
+            if (this.#currentRunning >= this.#options.maxConcurrency) {
                 await this.#waitEvent.once();
+            }
         }
 
-        if (p.length > 0)
+        if (p.length > 0) {
             await Promise.all(p);
+        }
 
         return results;
     }
@@ -233,15 +232,18 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     override set options(options: ConcurrencyCommonOptions) {
-        if (typeof options.maxConcurrency !== 'number' || !Number.isInteger(options.maxConcurrency))
+        if (!Number.isInteger(options.maxConcurrency)) {
             throw new Error('Parameter `maxConcurrency` invalid!');
+        }
 
         if (typeof options.concurrencyInterval === 'number') {
-            if (isNaN(options.concurrencyInterval))
+            if (isNaN(options.concurrencyInterval)) {
                 throw new Error('Parameter `concurrencyInterval` invalid!');
+            }
 
-            if (options.concurrencyInterval < 0)
+            if (options.concurrencyInterval < 0) {
                 throw new Error('Parameter `concurrencyInterval` must be a positive number!');
+            }
         } else {
             options.concurrencyInterval = void 0;
         }

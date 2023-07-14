@@ -1,2 +1,7 @@
-export const isAsyncIterator = <A>(input: AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>): input is AsyncIterable<A | Promise<A>> => Symbol.asyncIterator in input;
-export const isIterator = <A>(input: AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>): input is Iterable<A | Promise<A>> => Symbol.iterator in input;
+export function isAsyncIterator<A>(input: any): input is AsyncIterable<A | Promise<A>>{
+    return typeof input[Symbol.asyncIterator] === 'function';
+}
+
+export function isIterator<A>(input: any): input is Iterable<A | Promise<A>> {
+    return typeof input[Symbol.iterator] === 'function';
+}

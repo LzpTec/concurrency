@@ -100,9 +100,10 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     #options: BatchCommonOptions;
-    #currentRunning: number = 0;
     #queue: Queue<Job> = new Queue();
     #waitEvent: Event = new Event();
+
+    #jobs: Promise<any>[] = [];
 
     /**
      * 
@@ -111,87 +112,79 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     constructor(options: BatchCommonOptions) {
         super();
         this.options = options;
-    }
-
-    #runJob<T>(task: () => Promise<T> | T): Promise<T> {
-        return new Promise((resolve, reject) => {
-            this.#queue.enqueue({ task, resolve, reject });
-            this.#run();
+        this.#queue.onItemAdded(() => {
+            if (this.#jobs.length === 0) {
+                this.#run();
+            }
         });
     }
 
+    #runJob<T>(task: () => Promise<T> | T): Promise<T> {
+        return new Promise((resolve, reject) => this.#queue.enqueue({ task, resolve, reject }));
+    }
+
     async #run() {
-        await Promise.resolve();
-
-        if (this.#currentRunning >= this.#options.batchSize)
-            return;
-
-        let jobs = [];
         while (!this.#queue.isEmpty()) {
             const job = this.#queue.dequeue()!;
 
-            jobs[this.#currentRunning] = Promise
-                .resolve(job.task())
+            this.#jobs[this.#jobs.length] = Promise.resolve(job.task())
                 .then(res => job.resolve(res))
                 .catch(err => job.reject(err));
 
-            this.#currentRunning++;
-            if (this.#currentRunning >= this.#options.batchSize) {
-                await Promise.all(jobs);
-                jobs = [];
+            if (this.#jobs.length >= this.#options.batchSize) {
+                await Promise.all(this.#jobs);
+                this.#jobs = [];
 
-                await new Promise<void>((resolve) => {
-                    if (typeof this.#options.batchInterval === 'number' && this.#options.batchInterval > 0)
-                        return setTimeout(() => resolve(), this.#options.batchInterval);
+                if (typeof this.#options.batchInterval === 'number' && this.#options.batchInterval > 0) {
+                    await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.batchInterval));
+                }
 
-                    return resolve();
-                });
-
-                this.#currentRunning = 0;
                 this.#waitEvent.emit();
             }
+
+            // Gives chance to add itens to the queue
+            await Promise.resolve();
         }
     }
 
     override async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
         const iterator = processTaskInput(input, task);
 
-        const p: Set<Promise<any>> = new Set();
+        const promises: Set<Promise<any>> = new Set();
         let done = false;
 
+        const catchAndAbort = (err: any) => {
+            done = true;
+            throw err;
+        };
+
         while (!done) {
-            const job = this
-                .#runJob(async () => {
-                    const res = await iterator.next();
-                    if (res.done) {
-                        done = true;
-                        return;
-                    }
-
-                    const result = await task(await res.value);
-                    if (result === interrupt) {
-                        done = true;
-                        iterator.return?.();
-                        return;
-                    }
-                })
-                .then(() => {
-                    p.delete(job);
-                })
-                .catch(err => {
+            const jobPromise = this.#runJob(async () => {
+                const res = await iterator.next();
+                if (res.done) {
                     done = true;
-                    throw err;
-                });
+                    return;
+                }
 
-            p.add(job);
+                const result = await task(await res.value);
+                if (result === interrupt) {
+                    done = true;
+                    iterator.return?.();
+                    return;
+                }
+            });
+
+            const removeJob = () => promises.delete(jobPromise);
+            promises.add(jobPromise.then(removeJob).catch(catchAndAbort));
 
             await Promise.resolve();
-            if (this.#currentRunning >= this.#options.batchSize) {
+
+            if (this.#jobs.length >= this.#options.batchSize) {
                 await this.#waitEvent.once();
             }
         }
 
-        await Promise.all(p);
+        await Promise.all(promises);
     }
 
     override async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
@@ -199,14 +192,13 @@ export class Batch extends SharedBase<BatchCommonOptions> {
         const results: PromiseSettledResult<B>[] = new Array();
 
         let idx = 0;
-        let p = [];
+        let promises: Promise<any>[] = [];
         let done = false;
 
         while (!done) {
-            const index = idx;
-            idx++;
+            const index = idx++;
 
-            p
+            promises
                 .push(
                     this.#runJob(async () => {
                         const res = await iterator.next();
@@ -229,14 +221,15 @@ export class Batch extends SharedBase<BatchCommonOptions> {
                 );
 
             await Promise.resolve();
-            if (this.#currentRunning >= this.#options.batchSize) {
+            if (this.#jobs.length >= this.#options.batchSize) {
                 await this.#waitEvent.once();
-                p = [];
+                promises = [];
             }
         }
 
-        if (p.length > 0)
-            await Promise.all(p);
+        if (promises.length > 0) {
+            await Promise.all(promises);
+        }
 
         return results;
     }
@@ -246,15 +239,18 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     override set options(options: BatchCommonOptions) {
-        if (typeof options.batchSize !== 'number' || !Number.isInteger(options.batchSize))
+        if (!Number.isInteger(options.batchSize)) {
             throw new Error('Parameter `batchSize` invalid!');
+        }
 
         if (typeof options.batchInterval === 'number') {
-            if (isNaN(options.batchInterval))
+            if (isNaN(options.batchInterval)) {
                 throw new Error('Parameter `batchInterval` invalid!');
+            }
 
-            if (options.batchInterval < 0)
+            if (options.batchInterval < 0) {
                 throw new Error('Parameter `batchInterval` must be a positive number!');
+            }
         } else {
             options.batchInterval = void 0;
         }
