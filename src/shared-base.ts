@@ -1,9 +1,10 @@
+import { Event } from './event-emitter';
 import { isAsyncIterator, isIterator } from './guards';
 import type { Input, RunnableTask, Task } from './types';
 
 export const interrupt = {};
 
-export function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) {
+export async function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) {
     const isAsync = isAsyncIterator<A>(input);
     const isSync = isIterator<A>(input);
 
@@ -14,10 +15,19 @@ export function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) {
     if (fieldType !== 'function')
         throw new TypeError("Expected \`task(" + fieldType + ")\` to be a \`function\`");
 
-    return isAsync ? input[Symbol.asyncIterator]() : input[Symbol.iterator]();
+    if (isAsync) {
+        const arr = [];
+        for await (const i of input) arr.push(i);
+        return arr[Symbol.iterator]();
+    }
+
+    return input[Symbol.iterator]();
 }
 
 export abstract class SharedBase<Options> {
+
+    protected _waitEvent = new Event();
+    protected abstract get _isFull(): boolean;
 
     /**
      * Performs the specified `task` for each element in the input.
@@ -29,7 +39,44 @@ export abstract class SharedBase<Options> {
      * @param {Task<A, any>} task The task to run for each item.
      * @returns {Promise<void>}
      */
-    abstract forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void>;
+    async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void>{
+        const iterator = await this.run(() => processTaskInput(input, task));
+
+        const promises: Set<Promise<any>> = new Set();
+        let done = false;
+
+        const catchAndAbort = (err: any) => {
+            done = true;
+            throw err;
+        };
+
+        while (!done) {
+            const res = iterator.next();
+            if (res.done)
+                break;
+
+            const jobPromise = this.run(async () => {
+                const result = await task(await res.value);
+                if (result === interrupt) {
+                    done = true;
+                    iterator.return?.();
+                    return;
+                }
+            });
+
+            const removeJob = () => promises.delete(jobPromise);
+            promises.add(jobPromise.then(removeJob).catch(catchAndAbort));
+
+            await Promise.resolve();
+            if (this._isFull) {
+                await this._waitEvent.once();
+            }
+        }
+
+        if (promises.size > 0) {
+            await Promise.all(promises);
+        }
+    }
 
     /**
      * Same as `Promise.allSettled` with a map.
@@ -41,22 +88,46 @@ export abstract class SharedBase<Options> {
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
     async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+        const iterator = await this.run(() => processTaskInput(input, task));
         const results: PromiseSettledResult<B>[] = new Array();
 
-        await this.forEach(input, async (item: A) => {
-            try {
-                const value = await task(item);
-                results.push({
-                    status: 'fulfilled',
-                    value
-                });
-            } catch (reason) {
-                results.push({
-                    status: 'rejected',
-                    reason
-                });
+        let idx = 0;
+        let promises: Promise<any>[] = [];
+        let done = false;
+
+        while (!done) {
+            const index = idx++;
+
+            const res = iterator.next();
+            if (res.done)
+                break;
+
+            promises
+                .push(
+                    this.run(async () => {
+                        results[index] = {
+                            status: 'fulfilled',
+                            value: await task(await res.value)
+                        };
+                    })
+                        .catch(err =>
+                            results[index] = {
+                                status: 'rejected',
+                                reason: err
+                            }
+                        )
+                );
+
+            await Promise.resolve();
+            if (this._isFull) {
+                await this._waitEvent.once();
+                promises = [];
             }
-        });
+        }
+
+        if (promises.length > 0) {
+            await Promise.all(promises);
+        }
 
         return results;
     }

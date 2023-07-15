@@ -1,8 +1,7 @@
 import { Queue } from './collections';
-import { Event } from './event-emitter';
 import type { BatchCommonOptions, BatchPredicateOptions, BatchTaskOptions } from './options';
-import { interrupt, processTaskInput, SharedBase } from './shared-base';
-import type { Input, Job, RunnableTask, Task } from './types';
+import { SharedBase } from './shared-base';
+import type { Job, RunnableTask } from './types';
 
 export class Batch extends SharedBase<BatchCommonOptions> {
     /**
@@ -101,9 +100,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
 
     #options: BatchCommonOptions;
     #queue: Queue<Job> = new Queue();
-    #waitEvent: Event = new Event();
-
-    #jobs: Promise<any>[] = [];
+    #currentRunning: number = 0;
 
     /**
      * 
@@ -112,130 +109,47 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     constructor(options: BatchCommonOptions) {
         super();
         this.options = options;
-        this.#queue.onItemAdded(() => {
-            if (this.#jobs.length === 0) {
-                this.#run();
-            }
-        });
     }
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {
-        return new Promise((resolve, reject) => this.#queue.enqueue({ task, resolve, reject }));
+        const job = new Promise<T>((resolve, reject) => this.#queue.enqueue({ task, resolve, reject }));
+        if (!this._isFull) {
+            this.#run();
+        }
+        return job;
     }
 
     async #run() {
+        let jobs = [];
+
         while (!this.#queue.isEmpty()) {
             const job = this.#queue.dequeue()!;
 
-            this.#jobs[this.#jobs.length] = Promise.resolve(job.task())
+            jobs[this.#currentRunning++] = Promise
+                .resolve(job.task())
                 .then(res => job.resolve(res))
                 .catch(err => job.reject(err));
 
-            if (this.#jobs.length >= this.#options.batchSize) {
-                await Promise.all(this.#jobs);
-                this.#jobs = [];
+            if (this.#currentRunning >= this.#options.batchSize) {
+                await Promise.all(jobs);
+                jobs = [];
 
                 if (typeof this.#options.batchInterval === 'number' && this.#options.batchInterval > 0) {
                     await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.batchInterval));
                 }
 
-                this.#waitEvent.emit();
+                this.#currentRunning = 0;
+                this._waitEvent.emit();
             }
 
-            // Gives chance to add itens to the queue
             await Promise.resolve();
         }
-    }
 
-    override async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
-        const iterator = processTaskInput(input, task);
-
-        const promises: Set<Promise<any>> = new Set();
-        let done = false;
-
-        const catchAndAbort = (err: any) => {
-            done = true;
-            throw err;
-        };
-
-        while (!done) {
-            const jobPromise = this.#runJob(async () => {
-                const res = await iterator.next();
-                if (res.done) {
-                    done = true;
-                    return;
-                }
-
-                const result = await task(await res.value);
-                if (result === interrupt) {
-                    done = true;
-                    iterator.return?.();
-                    return;
-                }
-            });
-
-            const removeJob = () => promises.delete(jobPromise);
-            promises.add(jobPromise.then(removeJob).catch(catchAndAbort));
-
-            await Promise.resolve();
-
-            if (this.#jobs.length >= this.#options.batchSize) {
-                await this.#waitEvent.once();
-            }
-        }
-
-        await Promise.all(promises);
-    }
-
-    override async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const iterator = processTaskInput(input, task);
-        const results: PromiseSettledResult<B>[] = new Array();
-
-        let idx = 0;
-        let promises: Promise<any>[] = [];
-        let done = false;
-
-        while (!done) {
-            const index = idx++;
-
-            promises
-                .push(
-                    this.#runJob(async () => {
-                        const res = await iterator.next();
-                        if (res.done) {
-                            done = true;
-                            return;
-                        }
-
-                        results[index] = {
-                            status: 'fulfilled',
-                            value: await task(await res.value)
-                        };
-                    })
-                        .catch(err =>
-                            results[index] = {
-                                status: 'rejected',
-                                reason: err
-                            }
-                        )
-                );
-
-            await Promise.resolve();
-            if (this.#jobs.length >= this.#options.batchSize) {
-                await this.#waitEvent.once();
-                promises = [];
-            }
-        }
-
-        if (promises.length > 0) {
-            await Promise.all(promises);
-        }
-
-        return results;
+        await Promise.all(jobs);
     }
 
     override async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
-        return await this.#runJob(() => Promise.resolve(task(...args)));
+        return await this.#runJob(() => task(...args));
     }
 
     override set options(options: BatchCommonOptions) {
@@ -256,6 +170,10 @@ export class Batch extends SharedBase<BatchCommonOptions> {
         }
 
         this.#options = Object.assign({}, this.#options, options);
+    }
+
+    override get _isFull(): boolean {
+        return this.#currentRunning >= this.#options.batchSize;
     }
 
 }

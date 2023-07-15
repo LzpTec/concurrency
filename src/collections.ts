@@ -1,5 +1,3 @@
-import { Event } from "./event-emitter";
-
 type Node<T> = {
     data: T;
     next?: Node<T>;
@@ -7,7 +5,6 @@ type Node<T> = {
 };
 
 export class Queue<T> {
-    #addEvent: Event = new Event();
     #head?: Node<T>;
     #tail?: Node<T>;
 
@@ -26,8 +23,6 @@ export class Queue<T> {
             }
             this.#tail = node;
         }
-
-        this.#addEvent.emit();
     }
 
     public dequeue(): T | undefined {
@@ -53,9 +48,5 @@ export class Queue<T> {
     public clear(): void {
         this.#head = undefined;
         this.#tail = undefined;
-    }
-
-    public onItemAdded(callback: (...args: any[]) => void): void {
-        this.#addEvent.on(callback);
     }
 }

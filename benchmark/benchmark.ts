@@ -8,6 +8,7 @@ const batchSize = 4;
 const maxConcurrency = 4;
 
 const data = Array.from({ length: dataSize }, (_, i) => i);
+const instanceData = [...data, ...data];
 
 let idx = 0;
 
@@ -22,7 +23,7 @@ const map = async (bench: Bench) => {
     bench
         .add(`Batch#map - ${data.length} items - ${batchSize} items per batch`, async () => {
             const p1 = Batch.map({
-                input: [...data, ...data],
+                input: instanceData,
                 batchSize,
                 task: async (item) => new Promise<number>((resolve) => {
                     setTimeout(() => resolve(item + 1), 5 + (idx * 5));
@@ -33,7 +34,7 @@ const map = async (bench: Bench) => {
         })
         .add(`Concurrency#map - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
             const p1 = Concurrency.map({
-                input: [...data, ...data],
+                input: instanceData,
                 maxConcurrency,
                 task: async (item) => new Promise<number>((resolve) => {
                     setTimeout(() => resolve(item + 1), 5 + (idx * 5));
@@ -67,7 +68,7 @@ const map = async (bench: Bench) => {
         })
 
         .add(`p-map - ${data.length} items - ${maxConcurrency} concurrently jobs`, async () => {
-            const p1 = pMap([...data, ...data], async (item) => new Promise<number>((resolve) => {
+            const p1 = pMap(instanceData, async (item) => new Promise<number>((resolve) => {
                 setTimeout(() => resolve(item + 1), 5 + (idx * 5));
             }), { concurrency: maxConcurrency });
 
