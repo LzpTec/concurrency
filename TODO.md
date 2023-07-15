@@ -1,9 +1,11 @@
 # TODO
 
 ## 2.X.X
-- [ ] Improve performance.
-- [ ] Add tests.
 - [ ] Update docs.
+- [ ] Improve performance.
+- [x] Implement basic tests.
+- [x] Update deps.
+- [x] Reduce project size.
 
 ## 2.0.0
 
