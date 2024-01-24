@@ -1,4 +1,3 @@
-import { Event } from './event-emitter';
 import { isAsyncIterator, isIterator } from './guards';
 import type { Input, RunnableTask, Task } from './types';
 
@@ -25,9 +24,6 @@ export async function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) 
 }
 
 export abstract class SharedBase<Options> {
-
-    protected _waitEvent = new Event();
-    protected abstract get _isFull(): boolean;
 
     /**
      * Performs the specified `task` for each element in the input.
@@ -63,11 +59,6 @@ export abstract class SharedBase<Options> {
 
             const removeJob = () => promises.delete(jobPromise);
             promises.add(jobPromise.then(removeJob).catch(catchAndAbort));
-
-            await Promise.resolve();
-            if (this._isFull) {
-                await this._waitEvent.once();
-            }
         }
 
         if (promises.size > 0) {
@@ -115,12 +106,6 @@ export abstract class SharedBase<Options> {
                             }
                         )
                 );
-
-            await Promise.resolve();
-            if (this._isFull) {
-                await this._waitEvent.once();
-                promises = [];
-            }
         }
 
         if (promises.length > 0) {

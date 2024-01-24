@@ -129,7 +129,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {
         const job = new Promise<T>((resolve, reject) => this.#queue.enqueue({ task, resolve, reject }));
-        if (!this._isFull) {
+        if (!this.#isFull) {
             this.#run();
         }
         return job;
@@ -150,7 +150,6 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
             }
 
             this.#currentRunning--;
-            this._waitEvent.emit();
             await Promise.resolve();
         }
     }
@@ -179,7 +178,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         this.#options = { ...this.#options, ...options};
     }
 
-    override get _isFull(): boolean {
+    get #isFull(): boolean {
         return this.#currentRunning >= this.#options.maxConcurrency;
     }
 

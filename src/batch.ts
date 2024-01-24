@@ -116,7 +116,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
 
     #options: BatchCommonOptions;
     #queue: Queue<Job> = new Queue();
-    #currentRunning: number = 0;
+    #jobs: Promise<void>[] = [];
 
     /**
      * 
@@ -129,39 +129,31 @@ export class Batch extends SharedBase<BatchCommonOptions> {
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {
         const job = new Promise<T>((resolve, reject) => this.#queue.enqueue({ task, resolve, reject }));
-        if (!this._isFull) {
+        if (!this.#jobs.length) {
             this.#run();
         }
         return job;
     }
 
     async #run() {
-        let jobs = [];
-
         while (!this.#queue.isEmpty()) {
             const job = this.#queue.dequeue()!;
 
-            jobs[this.#currentRunning++] = Promise
+            this.#jobs[this.#jobs.length] = Promise
                 .resolve(job.task())
                 .then(res => job.resolve(res))
                 .catch(err => job.reject(err));
 
-            if (this.#currentRunning >= this.#options.batchSize) {
-                await Promise.all(jobs);
-                jobs = [];
+            if (this.#isFull || this.#queue.isEmpty()) {
+                await Promise.all(this.#jobs);
 
                 if (typeof this.#options.batchInterval === 'number' && this.#options.batchInterval > 0) {
                     await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.batchInterval));
                 }
 
-                this.#currentRunning = 0;
-                this._waitEvent.emit();
+                this.#jobs = [];
             }
-
-            await Promise.resolve();
         }
-
-        await Promise.all(jobs);
     }
 
     override async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
@@ -185,11 +177,11 @@ export class Batch extends SharedBase<BatchCommonOptions> {
             options.batchInterval = void 0;
         }
 
-        this.#options = { ...this.#options, ...options};
+        this.#options = { ...this.#options, ...options };
     }
 
-    override get _isFull(): boolean {
-        return this.#currentRunning >= this.#options.batchSize;
+    get #isFull(): boolean {
+        return this.#jobs.length >= this.#options.batchSize;
     }
 
 }
