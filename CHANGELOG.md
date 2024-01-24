@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.0.0](https://github.com/LzpTec/concurrency/compare/v2.0.1...v3.0.0) (2024-01-24)
+
+
+### Features
+
+* Add `@lzptec/concurrency/batch` and `@lzptec/concurrency/concurrency` exports. ([f36e624](https://github.com/LzpTec/concurrency/commit/f36e624e1b7764e817b758740d3d1e556abd1d2f))
+
+
+### Refactor
+
+* Implement `forEach` and `mapSettled` on the base class. ([90edf61](https://github.com/LzpTec/concurrency/commit/90edf61ad9164d1f4fcb23481713708658ed7fae))
+* Improve code readability. ([cc0320b](https://github.com/LzpTec/concurrency/commit/cc0320b9924a1673399c149fa98752762f0236bd))
+* Internal changes to improve maintenance. ([7164dfc](https://github.com/LzpTec/concurrency/commit/7164dfc1bd8ae9cb278cc030c2153ba2ddc7bced))
+* Isolate internal code. ([71fb1d5](https://github.com/LzpTec/concurrency/commit/71fb1d59ec878589d3841f20c57d14d5d1c5badb))
+
+
+### Misc
+
+* Update benchmark. ([9b1de7c](https://github.com/LzpTec/concurrency/commit/9b1de7c3c66625e33f93676cc50665f4722f90c8))
+* Update deps. ([adf9e20](https://github.com/LzpTec/concurrency/commit/adf9e20093070657c186b03d2bd5d1cab7d9462b))
+
+
+### Dependencies
+
+* Update deps. ([30e6a6a](https://github.com/LzpTec/concurrency/commit/30e6a6ababfe584a04f32953670f919bd2592337))
+
 ## [2.0.1](https://github.com/LzpTec/concurrency/compare/v2.0.0...v2.0.1) (2023-05-23)
 
 
