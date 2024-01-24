@@ -33,7 +33,7 @@ export abstract class SharedBase<Options> {
      * @param {Task<A, any>} task The task to run for each item.
      * @returns {Promise<void>}
      */
-    async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void>{
+    async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
         const iterator = await this.run(() => processTaskInput(input, task));
 
         const promises: Set<Promise<any>> = new Set();
@@ -77,40 +77,21 @@ export abstract class SharedBase<Options> {
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
     async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const iterator = await this.run(() => processTaskInput(input, task));
         const results: PromiseSettledResult<B>[] = new Array();
 
-        let idx = 0;
-        let promises: Promise<any>[] = [];
-        let done = false;
-
-        while (!done) {
-            const index = idx++;
-
-            const res = iterator.next();
-            if (res.done)
-                break;
-
-            promises
-                .push(
-                    this.run(async () => {
-                        results[index] = {
-                            status: 'fulfilled',
-                            value: await task(await res.value)
-                        };
-                    })
-                        .catch(err =>
-                            results[index] = {
-                                status: 'rejected',
-                                reason: err
-                            }
-                        )
-                );
-        }
-
-        if (promises.length > 0) {
-            await Promise.all(promises);
-        }
+        await this.forEach(input, async (item) => {
+            try {
+                results.push({
+                    status: 'fulfilled',
+                    value: await task(item)
+                });
+            } catch (err) {
+                results.push({
+                    status: 'rejected',
+                    reason: err
+                });
+            }
+        });
 
         return results;
     }
