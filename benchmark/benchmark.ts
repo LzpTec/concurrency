@@ -195,7 +195,6 @@ const run = async () => {
                 return;
 
             console.log(colors.blue(`${task.name} ended!`));
-            globalThis.gc?.();
         }
     });
 
