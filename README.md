@@ -1,4 +1,4 @@
-# @lzptec/concurrency
+# @lzptec/concurrency ![NPM Version](https://img.shields.io/npm/v/%40lzptec%2Fconcurrency) ![NPM License](https://img.shields.io/npm/l/%40lzptec%2Fconcurrency)
 Lightweight concurrency manager
 
 # Installation
