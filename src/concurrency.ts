@@ -6,10 +6,8 @@ import type { Job, RunnableTask } from './types';
 export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     /**
-     * Performs the specified task for each element in the input, but it limits the concurrent execution to `maxConcurrency`.
+     * Performs the specified `task` for each element in the `input`, but it limits the concurrent execution to `maxConcurrency`.
      *
-     * Same as Concurrency.map, But it doesn't store/return the results.
-     * 
      * @template A
      * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
      * @returns {Promise<void>}
@@ -19,8 +17,8 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     /**
-     * Same as Promise.all, but it limits the concurrent execution to `maxConcurrency`.
-     *
+     * Performs the specified `task` function on each element in the `input`, and returns an array that contains the results.
+     * 
      * @template A
      * @template B
      * @param {ConcurrencyTaskOptions<A, B>} taskOptions Task Options.
@@ -31,8 +29,9 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     /**
-     * Same as Promise.allSettled, but it limits the concurrent execution to `maxConcurrency`.
-     *
+     * Performs the specified `task` function on each element in the `input`, 
+     * and creates a Promise that is resolved with an array of results when all of the tasks are resolve or reject.
+     * 
      * @template A
      * @template B
      * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.

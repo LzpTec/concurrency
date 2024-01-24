@@ -32,8 +32,6 @@ export abstract class SharedBase<Options> {
     /**
      * Performs the specified `task` for each element in the input.
      * 
-     * Same as map, But it doesn't store/return the results.
-     * 
      * @template A
      * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {Task<A, any>} task The task to run for each item.
@@ -79,7 +77,8 @@ export abstract class SharedBase<Options> {
     }
 
     /**
-     * Same as `Promise.allSettled` with a map.
+     * Performs the specified `task` function on each element in the `input`, 
+     * and creates a Promise that is resolved with an array of results when all of the tasks are resolve or reject.
      *
      * @template A
      * @template B
@@ -149,7 +148,7 @@ export abstract class SharedBase<Options> {
     abstract set options(options: Options);
 
     /**
-     * Calls a defined `task` function on each element of the `input`, and returns an array that contains the results.
+     * Performs the specified `task` function on each element in the `input`, and returns an array that contains the results.
      *
      * @template A
      * @template B

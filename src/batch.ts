@@ -4,11 +4,10 @@ import { SharedBase } from './shared-base';
 import type { Job, RunnableTask } from './types';
 
 export class Batch extends SharedBase<BatchCommonOptions> {
+
     /**
-     * Performs the specified task for each element in the input, but it waits for the first `batchSize` promises to finish before starting the next batch.
+     * Performs the specified `task` for each element in the `input`, but it waits for the first `batchSize` promises to finish before starting the next batch.
      *
-     * Same as Batch.map, But it doesn't store/return the results.
-     * 
      * @template A Input Type.
      * @param {BatchTaskOptions<A, any>} taskOptions Task Options.
      * @returns {Promise<void>}
@@ -18,8 +17,8 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     /**
-     * Same as Promise.all, but it waits for the first `batchSize` promises to finish before starting the next batch.
-     *
+     * Performs the specified `task` function on each element in the `input`, and returns an array that contains the results.
+     * 
      * @template A Input Type.
      * @template B Output Type.
      * @param {BatchTaskOptions<A, B>} taskOptions Task Options.
@@ -30,8 +29,9 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     /**
-     * Same as Promise.allSettled, but it waits for the first `batchSize` promises to finish before starting the next batch.
-     *
+     * Performs the specified `task` function on each element in the `input`, 
+     * and creates a Promise that is resolved with an array of results when all of the tasks are resolve or reject.
+     * 
      * @template A Input Type.
      * @template B Output Type.
      * @param {BatchTaskOptions<A, B>} taskOptions Task Options.
@@ -92,7 +92,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      * 
      * @template A Input Type.
      * @param {BatchTaskOptions<A>} taskOptions Task Options.
-     * @returns {Promise<{string | symbol}>}
+     * @returns {Promise<{ [key: string | symbol]: A[] }>}
      */
     static async group<A>(taskOptions: BatchTaskOptions<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
         return new Batch(taskOptions).group(taskOptions.input, taskOptions.task);
