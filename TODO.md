@@ -1,6 +1,6 @@
 # TODO
 
-## 2.X.X
+## 3.X.X
 - [ ] Update docs.
 - [ ] Improve performance.
 - [x] Implement basic tests.
