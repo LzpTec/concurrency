@@ -6,7 +6,9 @@ import type { Job, RunnableTask } from './types';
 export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     /**
-     * Performs the specified `task` for each element in the `input`, but it limits the concurrent execution to `maxConcurrency`.
+     * Performs the specified `task` for each element in the `input`.
+     * 
+     * It limits the concurrent execution to `maxConcurrency`.
      *
      * @template A
      * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
@@ -18,6 +20,8 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     /**
      * Performs the specified `task` function on each element in the `input`, and returns an array that contains the results.
+     * 
+     * It limits the concurrent execution to `maxConcurrency`.
      * 
      * @template A
      * @template B
@@ -32,6 +36,8 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * Performs the specified `task` function on each element in the `input`, 
      * and creates a Promise that is resolved with an array of results when all of the tasks are resolve or reject.
      * 
+     * It limits the concurrent execution to `maxConcurrency`.
+     * 
      * @template A
      * @template B
      * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
@@ -42,7 +48,9 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     /**
-     * Returns the elements that meet the condition specified in the predicate function, but it limits the concurrent execution to `maxConcurrency`.
+     * Returns the elements that meet the condition specified in the `predicate` function.
+     * 
+     * It limits the concurrent execution to `maxConcurrency`.
      *
      * @template A
      * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
@@ -52,9 +60,10 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         return new Concurrency(taskOptions).filter(taskOptions.input, taskOptions.predicate);
     }
 
-
     /**
      * Determines whether the specified `predicate` function returns true for any element of `input`.
+     * 
+     * It limits the concurrent execution to `maxConcurrency`.
      * 
      * @template A Input Type.
      * @param {BatchPredicateOptions<A>} taskOptions Task Options.
@@ -65,7 +74,9 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     /**
-     * Returns the value of the first element of `input` where `predicate` is true, and undefined otherwise.
+     * Returns the `input` value of the first `predicate` that resolves to true, and undefined otherwise.
+     * 
+     * It limits the concurrent execution to `maxConcurrency`.
      * 
      * @template A Input Type.
      * @param {BatchPredicateOptions<A>} taskOptions Task Options.
@@ -77,6 +88,8 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     /**
      * Determines whether all the elements of `input` satisfy the specified `predicate`.
+     * 
+     * It limits the concurrent execution to `maxConcurrency`.
      * 
      * @template A Input Type.
      * @param {BatchPredicateOptions<A>} taskOptions Task Options.
@@ -90,6 +103,8 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * This method groups the elements of the `input` according to the string values returned by a provided `task`. 
      * 
      * The returned object has separate properties for each group, containing arrays with the elements in the group. 
+     * 
+     * It limits the concurrent execution to `maxConcurrency`.
      * 
      * @template A Input Type.
      * @param {ConcurrencyTaskOptions<A>} taskOptions Task Options.

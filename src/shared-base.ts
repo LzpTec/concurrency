@@ -209,7 +209,7 @@ export abstract class SharedBase<Options> {
     }
 
     /**
-     * Returns the value of the first element of `input` where `predicate` is true, and undefined otherwise.
+     * Returns the `input` value of the first `predicate` that resolves to true, and undefined otherwise.
      * 
      * @template A Input Type.
      * @param {Input<A>} input Arguments to pass to the task for each call.

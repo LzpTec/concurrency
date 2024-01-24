@@ -6,7 +6,9 @@ import type { Job, RunnableTask } from './types';
 export class Batch extends SharedBase<BatchCommonOptions> {
 
     /**
-     * Performs the specified `task` for each element in the `input`, but it waits for the first `batchSize` promises to finish before starting the next batch.
+     * Performs the specified `task` for each element in the `input`.
+     * 
+     * It runs in batches with size defined by `batchSize`.
      *
      * @template A Input Type.
      * @param {BatchTaskOptions<A, any>} taskOptions Task Options.
@@ -18,6 +20,8 @@ export class Batch extends SharedBase<BatchCommonOptions> {
 
     /**
      * Performs the specified `task` function on each element in the `input`, and returns an array that contains the results.
+     * 
+     * It runs in batches with size defined by `batchSize`.
      * 
      * @template A Input Type.
      * @template B Output Type.
@@ -32,6 +36,8 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      * Performs the specified `task` function on each element in the `input`, 
      * and creates a Promise that is resolved with an array of results when all of the tasks are resolve or reject.
      * 
+     * It runs in batches with size defined by `batchSize`.
+     * 
      * @template A Input Type.
      * @template B Output Type.
      * @param {BatchTaskOptions<A, B>} taskOptions Task Options.
@@ -42,7 +48,9 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     /**
-     * Returns the elements that meet the condition specified in the predicate function, but it search in batches.
+     * Returns the elements that meet the condition specified in the `predicate` function.
+     * 
+     * It runs in batches with size defined by `batchSize`.
      *
      * @template A Input Type.
      * @param {BatchPredicateOptions<A>} taskOptions Task Options.
@@ -55,6 +63,8 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     /**
      * Determines whether the specified `predicate` function returns true for any element of `input`.
      * 
+     * It runs in batches with size defined by `batchSize`.
+     * 
      * @template A Input Type.
      * @param {BatchPredicateOptions<A>} taskOptions Task Options.
      * @returns {Promise<boolean>}
@@ -64,7 +74,9 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     /**
-     * Returns the value of the first element of `input` where `predicate` is true, and undefined otherwise.
+     * Returns the `input` value of the first `predicate` that resolves to true, and undefined otherwise.
+     * 
+     * It runs in batches with size defined by `batchSize`.
      * 
      * @template A Input Type.
      * @param {BatchPredicateOptions<A>} taskOptions Task Options.
@@ -77,6 +89,8 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     /**
      * Determines whether all the elements of `input` satisfy the specified `predicate`.
      * 
+     * It runs in batches with size defined by `batchSize`.
+     * 
      * @template A Input Type.
      * @param {BatchPredicateOptions<A>} taskOptions Task Options.
      * @returns {Promise<boolean>}
@@ -86,9 +100,11 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     /**
-     * This method groups the elements of the `input` according to the string values returned by a provided `task`. 
+     * This method groups the elements of the `input` according to the string values returned by a provided `task`.
      * 
-     * The returned object has separate properties for each group, containing arrays with the elements in the group. 
+     * The returned object has separate properties for each group, containing arrays with the elements in the group.
+     * 
+     * It runs in batches with size defined by `batchSize`.
      * 
      * @template A Input Type.
      * @param {BatchTaskOptions<A>} taskOptions Task Options.

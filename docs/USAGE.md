@@ -78,7 +78,9 @@ B: Task Output
 ### map\<A, B\>(taskOptions)
 Returns: `Promise<B>`
 
-Same as Promise.all, but it waits for the first `batchSize` promises to finish before starting the next batch.
+Performs the specified `task` function on each element in the `input`, and returns an array that contains the results.
+
+It runs in batches with size defined by `batchSize`.
 
 #### taskOptions
 **Required**<br>
@@ -94,7 +96,7 @@ Arguments to pass to the task for each call.
 **Required**<br>
 Type: `number`<br>
 
-The task to run for each item.
+The batch size.
 
 #### taskOptions.task
 **Required**<br>
@@ -110,7 +112,10 @@ Interval between batches(in MS).
 ### mapSettled\<A, B\>(taskOptions)
 Returns: `Promise<PromiseSettledResult<B>>`
 
-Same as Promise.allSettled, but it waits for the first `batchSize` promises to finish before starting the next batch.
+Performs the specified `task` function on each element in the `input`, 
+and creates a Promise that is resolved with an array of results when all of the tasks are resolve or reject.
+
+It runs in batches with size defined by `batchSize`.
 
 #### taskOptions
 **Required**<br>
@@ -126,7 +131,7 @@ Arguments to pass to the task for each call.
 **Required**<br>
 Type: `number`<br>
 
-The task to run for each item.
+The batch size.
 
 #### taskOptions.task
 **Required**<br>
@@ -142,8 +147,9 @@ Interval between batches(in MS).
 ### forEach\<A\>(taskOptions)
 Returns: `Promise<void>`
 
-Performs the specified task for each element in the input, but it waits for the first `batchSize` promises to finish before starting the next batch.
-Same as Batch.map, But it doesn't store/return the results.
+Performs the specified `task` for each element in the `input`.
+
+It runs in batches with size defined by `batchSize`.
 
 #### taskOptions
 **Required**<br>
@@ -159,7 +165,7 @@ Arguments to pass to the task for each call.
 **Required**<br>
 Type: `number`<br>
 
-The task to run for each item.
+The batch size.
 
 #### taskOptions.task
 **Required**<br>
@@ -175,7 +181,9 @@ Interval between batches(in MS).
 ### filter\<A\>(taskOptions)
 Returns: `Promise<A>`
 
-Returns the elements that meet the condition specified in the predicate function, but it search in batches.
+Returns the elements that meet the condition specified in the `predicate` function.
+
+It runs in batches with size defined by `batchSize`.
 
 #### taskOptions
 **Required**<br>
@@ -191,7 +199,7 @@ Arguments to pass to the task for each call.
 **Required**<br>
 Type: `number`<br>
 
-The task to run for each item.
+The batch size.
 
 #### taskOptions.predicate
 **Required**<br>
@@ -209,6 +217,8 @@ Returns: `Promise<boolean>`
 
 Determines whether the specified `predicate` function returns true for any element of `input`.
 
+It runs in batches with size defined by `batchSize`.
+
 #### taskOptions
 **Required**<br>
 Type: `Object`<br>
@@ -223,7 +233,7 @@ Arguments to pass to the task for each call.
 **Required**<br>
 Type: `number`<br>
 
-The task to run for each item.
+The batch size.
 
 #### taskOptions.predicate
 **Required**<br>
@@ -239,7 +249,9 @@ Interval between batches(in MS).
 ### find\<A\>(taskOptions)
 Returns: `Promise<A | undefined>`
 
-Returns the value of the first element of `input` where `predicate` is true, and undefined otherwise.
+Returns the `input` value of the first `predicate` that resolves to true, and undefined otherwise.
+
+It runs in batches with size defined by `batchSize`.
 
 #### taskOptions
 **Required**<br>
@@ -255,7 +267,7 @@ Arguments to pass to the task for each call.
 **Required**<br>
 Type: `number`<br>
 
-The task to run for each item.
+The batch size.
 
 #### taskOptions.predicate
 **Required**<br>
@@ -273,6 +285,8 @@ Returns: `Promise<boolean>`
 
 Determines whether all the elements of `input` satisfy the specified `predicate`.
 
+It runs in batches with size defined by `batchSize`.
+
 #### taskOptions
 **Required**<br>
 Type: `Object`<br>
@@ -287,13 +301,49 @@ Arguments to pass to the task for each call.
 **Required**<br>
 Type: `number`<br>
 
-The task to run for each item.
+The batch size.
 
 #### taskOptions.predicate
 **Required**<br>
 Type: `Task<A, boolean>`<br>
 
 The predicate function is called one time for each element in the `input`.
+
+#### taskOptions.batchInterval
+Type: `number`<br>
+
+Interval between batches(in MS).
+
+### group\<A\>(taskOptions)
+Returns: `{ [key: string | symbol]: A[] }`
+
+This method groups the elements of the `input` according to the string values returned by a provided `task`.
+
+The returned object has separate properties for each group, containing arrays with the elements in the group.
+
+It runs in batches with size defined by `batchSize`.
+
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
+**Required**<br>
+Type: `Input<A>`<br>
+
+Arguments to pass to the task for each call.
+
+#### taskOptions.batchSize
+**Required**<br>
+Type: `number`<br>
+
+The batch size.
+
+#### taskOptions.task
+**Required**<br>
+Type: `Task<A, string | symbol>`<br>
+
+The task to run for each item.
 
 #### taskOptions.batchInterval
 Type: `number`<br>
@@ -359,7 +409,9 @@ The task to run for each item.
 ### map\<A, B\>(taskOptions)
 Returns: `Promise<B>`
 
-Same as Promise.all(input.map(item => task(item))), but it limits the concurrent execution to `maxConcurrency`.
+Performs the specified `task` function on each element in the `input`, and returns an array that contains the results.
+
+It limits the concurrent execution to `maxConcurrency`.
 
 #### taskOptions
 **Required**<br>
@@ -391,7 +443,10 @@ Interval between jobs(in MS).
 ### mapSettled\<A, B\>(taskOptions)
 Returns: `Promise<PromiseSettledResult<B>>`
 
-Same as Promise.allSettled(input.map(item => task(item))), but it limits the concurrent execution to `maxConcurrency`.
+Performs the specified `task` function on each element in the `input`, 
+and creates a Promise that is resolved with an array of results when all of the tasks are resolve or reject.
+
+It limits the concurrent execution to `maxConcurrency`.
 
 #### taskOptions
 **Required**<br>
@@ -423,8 +478,9 @@ Interval between jobs(in MS).
 ### forEach\<A\>(taskOptions)
 Returns: `Promise<void>`
 
-Performs the specified task for each element in the input, but it limits the concurrent execution to `maxConcurrency`.
-Same as Concurrency.map, But it doesn't store/return the results.
+Performs the specified `task` for each element in the `input`.
+
+It limits the concurrent execution to `maxConcurrency`.
 
 #### taskOptions
 **Required**<br>
@@ -456,7 +512,9 @@ Interval between jobs(in MS).
 ### filter\<A\>(taskOptions)
 Returns: `Promise<A>`
 
-Returns the elements that meet the condition specified in the predicate function, but it limits the concurrent execution to `maxConcurrency`.
+Returns the elements that meet the condition specified in the `predicate` function.
+
+It limits the concurrent execution to `maxConcurrency`.
 
 #### taskOptions
 **Required**<br>
@@ -490,6 +548,8 @@ Returns: `Promise<boolean>`
 
 Determines whether the specified `predicate` function returns true for any element of `input`.
 
+It limits the concurrent execution to `maxConcurrency`.
+
 #### taskOptions
 **Required**<br>
 Type: `Object`<br>
@@ -520,7 +580,9 @@ Interval between jobs(in MS).
 ### find\<A\>(taskOptions)
 Returns: `Promise<A | undefined>`
 
-Returns the value of the first element of `input` where `predicate` is true, and undefined otherwise.
+Returns the `input` value of the first `predicate` that resolves to true, and undefined otherwise.
+
+It limits the concurrent execution to `maxConcurrency`.
 
 #### taskOptions
 **Required**<br>
@@ -554,6 +616,8 @@ Returns: `Promise<boolean>`
 
 Determines whether all the elements of `input` satisfy the specified `predicate`.
 
+It limits the concurrent execution to `maxConcurrency`.
+
 #### taskOptions
 **Required**<br>
 Type: `Object`<br>
@@ -575,6 +639,42 @@ The max concurrency.
 Type: `Task<A, boolean>`<br>
 
 The predicate function is called one time for each element in the `input`.
+
+#### taskOptions.concurrencyInterval
+Type: `number`<br>
+
+Interval between jobs(in MS).
+
+### group\<A\>(taskOptions)
+Returns: `{ [key: string | symbol]: A[] }`
+
+This method groups the elements of the `input` according to the string values returned by a provided `task`.
+
+The returned object has separate properties for each group, containing arrays with the elements in the group.
+
+It limits the concurrent execution to `maxConcurrency`.
+
+#### taskOptions
+**Required**<br>
+Type: `Object`<br>
+
+#### taskOptions.input
+**Required**<br>
+Type: `Input<A>`<br>
+
+Arguments to pass to the task for each call.
+
+#### taskOptions.maxConcurrency
+**Required**<br>
+Type: `number`<br>
+
+The max concurrency.
+
+#### taskOptions.task
+**Required**<br>
+Type: `Task<A, string | symbol>`<br>
+
+The task to run for each item.
 
 #### taskOptions.concurrencyInterval
 Type: `number`<br>
