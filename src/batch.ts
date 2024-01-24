@@ -169,7 +169,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
             options.batchInterval = void 0;
         }
 
-        this.#options = Object.assign({}, this.#options, options);
+        this.#options = { ...this.#options, ...options};
     }
 
     override get _isFull(): boolean {

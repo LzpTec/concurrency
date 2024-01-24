@@ -9,11 +9,11 @@ export async function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) 
     const isSync = isIterator<A>(input);
 
     if (!isAsync && !isSync)
-        throw new TypeError("Expected \`input(" + typeof input + ")\` to be an \`Iterable\` or \`AsyncIterable\`");
+        throw new TypeError("Expected `input(" + typeof input + ")` to be an `Iterable` or `AsyncIterable`");
 
     const fieldType = typeof task;
     if (fieldType !== 'function')
-        throw new TypeError("Expected \`task(" + fieldType + ")\` to be a \`function\`");
+        throw new TypeError("Expected `task(" + fieldType + ")` to be a `function`");
 
     if (isAsync) {
         const arr = [];
@@ -58,7 +58,6 @@ export abstract class SharedBase<Options> {
                 if (result === interrupt) {
                     done = true;
                     iterator.return?.();
-                    return;
                 }
             });
 
@@ -175,7 +174,7 @@ export abstract class SharedBase<Options> {
     async filter<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<A[]> {
         const fieldType = typeof predicate;
         if (fieldType !== 'function')
-            throw new TypeError("Expected \`predicate(" + fieldType + ")\` to be a \`function\`");
+            throw new TypeError("Expected `predicate(" + fieldType + ")` to be a `function`");
 
         const results: A[] = new Array();
 

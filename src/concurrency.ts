@@ -161,7 +161,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
             options.concurrencyInterval = void 0;
         }
 
-        this.#options = Object.assign({}, this.#options, options);
+        this.#options = { ...this.#options, ...options};
     }
 
     override get _isFull(): boolean {
