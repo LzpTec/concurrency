@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.0.1](https://github.com/LzpTec/concurrency/compare/v3.0.0...v3.0.1) (2024-05-03)
+
+
+### Performance
+
+* Improve Performance. ([34d0d9e](https://github.com/LzpTec/concurrency/commit/34d0d9edfee8e32c5f6cde0a6aa202ba80dbac17))
+
+
+### Refactor
+
+* Code cleanup. ([ea4b6af](https://github.com/LzpTec/concurrency/commit/ea4b6af76de7f2dd4382f2a39880df17da81e74a))
+* Simplified mapSettled implementation. ([241d975](https://github.com/LzpTec/concurrency/commit/241d97559c1dc7c942baf4ea96a7c945dcc47e6f))
+
+
+### Docs
+
+* Change methods descriptions. ([f79468e](https://github.com/LzpTec/concurrency/commit/f79468e45b76a39412f127c6def62a7d1991b7b3))
+* Change TODO struct. ([2e24426](https://github.com/LzpTec/concurrency/commit/2e24426546173e72f031f89d30f4447077fe61f6))
+* Update descriptions and Usage doc. ([b7731fc](https://github.com/LzpTec/concurrency/commit/b7731fccab62e91b1071f39f87dbf13052099bbc))
+* Update README.md ([f5104cb](https://github.com/LzpTec/concurrency/commit/f5104cbb3ac8a5ffa5e448ad28addba834e1c6b2))
+* Update TODO. ([c644c64](https://github.com/LzpTec/concurrency/commit/c644c64bba1f58f6964a20139326849bf0f287c9))
+
 ## [3.0.0](https://github.com/LzpTec/concurrency/compare/v2.0.1...v3.0.0) (2024-01-24)
 
 
