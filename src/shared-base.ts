@@ -15,9 +15,7 @@ export async function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) 
         throw new TypeError("Expected `task(" + fieldType + ")` to be a `function`");
 
     if (isAsync) {
-        const arr = [];
-        for await (const i of input) arr.push(i);
-        return arr[Symbol.iterator]();
+        return input[Symbol.asyncIterator]();
     }
 
     return input[Symbol.iterator]();
@@ -45,7 +43,7 @@ export abstract class SharedBase<Options> {
         };
 
         while (!done) {
-            const res = iterator.next();
+            const res = await iterator.next();
             if (res.done)
                 break;
 
