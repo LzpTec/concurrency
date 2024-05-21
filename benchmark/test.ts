@@ -2,8 +2,8 @@ import { Batch, Concurrency } from '@lzptec/concurrency';
 import { inspect } from 'util';
 
 const asyncData: { from: number; to: number } & AsyncIterable<number> = {
-    from: 1,
-    to: 15,
+    from: 0,
+    to: 14,
 
     [Symbol.asyncIterator]() {
         let current = this.from;
@@ -93,26 +93,26 @@ const run = async () => {
                 console.log(`Batch.map ${idx++} - Item ${item}`);
                 setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'Batch.map(async)': await Batch.map({
             input: asyncData,
             batchSize: globalBatchSize,
             task: async (item) => new Promise((resolve) => {
-                console.log(`Batch.map ${idx++} - Item ${item}`);
+                console.log(`Batch.map(async) ${idx++} - Item ${item}`);
                 setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'BatchInstance.map': await batchInstance.map(data, async (item) => new Promise((resolve) => {
             console.log(`BatchInstance.map ${idx++} - Item ${item}`)
             setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
-        })),
+        })).then(() => idx = 0),
 
         'BatchInstance.map(async)': await batchInstance.map(asyncData, async (item) => new Promise((resolve) => {
-            console.log(`BatchInstance.map ${idx++} - Item ${item}`)
+            console.log(`BatchInstance.map(async) ${idx++} - Item ${item}`)
             setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
-        })),
+        })).then(() => idx = 0),
 
         'Concurrency.map': await Concurrency.map({
             input: data,
@@ -121,30 +121,30 @@ const run = async () => {
                 console.log(`Concurrency.map ${idx++}`)
                 setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'Concurrency.map(async)': await Concurrency.map({
             input: data,
             maxConcurrency: globalMaxConcurrency,
             task: async (item) => new Promise((resolve) => {
-                console.log(`Concurrency.map ${idx++}`)
+                console.log(`Concurrency.map(async) ${idx++}`)
                 setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'ConcurrencyInstance.map': await concurrencyInstance.map(data, async (item) => new Promise((resolve) => {
             console.log(`ConcurrencyInstance.map ${idx++}`)
             setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
-        })),
+        })).then(() => idx = 0),
 
         'ConcurrencyInstance.map(async)': await concurrencyInstance.map(data, async (item) => new Promise((resolve) => {
-            console.log(`ConcurrencyInstance.map ${idx++}`)
+            console.log(`ConcurrencyInstance.map(async) ${idx++}`)
             setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
-        })),
+        })).then(() => idx = 0),
 
         'Promise.all': await Promise.all(data.map(async item => new Promise((resolve) => {
             setTimeout(() => resolve(item * item + 1), 400 + (idx * 50));
-        }))),
+        }))).then(() => idx = 0),
     };
     map;
     console.log(JSON.stringify(map));

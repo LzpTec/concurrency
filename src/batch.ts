@@ -1,12 +1,14 @@
 import type { BatchCommonOptions, BatchPredicateOptions, BatchTaskOptions } from './options';
-import { SharedBase } from './shared-base';
-import type { Job, RunnableTask } from './types';
+import { Queue } from './queue';
+import { SharedBase, interrupt, max, processTaskInput } from './shared-base';
+import type { Input, Job, RunnableTask, Task } from './types';
 
 export class Batch extends SharedBase<BatchCommonOptions> {
 
     #options: BatchCommonOptions;
-    #queue: Job<any>[] = [];
     #jobs: Promise<void>[] = [];
+    #isRunning: boolean = false;
+    #queue: Queue<Job<any>> = new Queue();
 
     /**
      * Performs the specified `task` for each element in the `input`.
@@ -126,37 +128,71 @@ export class Batch extends SharedBase<BatchCommonOptions> {
         this.options = options;
     }
 
-    #runJob<T>(task: () => Promise<T> | T): Promise<T> {
-        const job = new Promise<T>((resolve, reject) => this.#queue.push({ task, resolve, reject }));
-        if (!this.#jobs.length) {
-            this.#run();
-        }
-        return job;
-    }
-
     async #run() {
-        while (this.#queue.length) {
-            const job = this.#queue.pop()!;
+        if (this.#isRunning) return;
+        this.#isRunning = true;
 
-            this.#jobs[this.#jobs.length] = Promise
-                .resolve(job.task())
+        while (this.#queue.length) {
+            const job = this.#queue.shift()!;
+
+            const p = Promise
+                .resolve(job.task(...job.args))
                 .then(job.resolve)
                 .catch(job.reject);
 
-            if (this.#jobs.length >= this.#options.batchSize || this.#queue.length === 0) {
+            const length = this.#jobs.push(p);
+            if (length >= this.#options.batchSize) {
                 await Promise.all(this.#jobs);
+                this.#jobs.length = 0;
+            }
 
-                if (typeof this.#options.batchInterval === 'number' && this.#options.batchInterval > 0) {
-                    await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.batchInterval));
-                }
-
-                this.#jobs = [];
+            if (typeof this.#options.batchInterval === 'number' && this.#options.batchInterval > 0) {
+                await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.batchInterval));
             }
         }
+
+        this.#isRunning = false;
     }
 
-    override async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
-        return await this.#runJob(() => task(...args));
+    override run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
+        const job = new Promise<B>((resolve, reject) => {
+            this.#queue.push({ task, resolve, reject, args });
+            this.#run();
+        });
+        return job;
+    }
+
+    override async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
+        const iterator = processTaskInput(input, task);
+
+        let done = false;
+        const jobCount = this[max];
+
+        const catchAndAbort = (err: any) => {
+            done = true;
+            throw err;
+        };
+
+        const promises: Promise<any>[] = new Array(jobCount);
+        for (let i = 0, size = jobCount; i < size; i++) {
+            promises[i] = (async () => {
+                let res = await iterator.next();
+
+                while (!done && !res.done) {
+                    await this.run(async () => {
+                        const result = await task(await res.value);
+                        if (result === interrupt) {
+                            done = true;
+                            iterator.return?.();
+                        }
+                    }).catch(catchAndAbort);
+
+                    res = await iterator.next();
+                }
+            })().catch(catchAndAbort);
+        }
+
+        await Promise.all(promises);
     }
 
     override set options(options: BatchCommonOptions) {
@@ -177,6 +213,10 @@ export class Batch extends SharedBase<BatchCommonOptions> {
         }
 
         this.#options = { ...this.#options, ...options };
+    }
+
+    override get [max](){
+        return this.#options.batchSize;
     }
 
 }

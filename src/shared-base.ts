@@ -1,9 +1,10 @@
 import { isAsyncIterator, isIterator } from './guards';
 import type { Input, RunnableTask, Task } from './types';
 
-export const interrupt = {};
+export const interrupt = Symbol(`Interrupt`);
+export const max = Symbol(`max`);
 
-export async function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) {
+export function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) {
     const isAsync = isAsyncIterator<A>(input);
     const isSync = isIterator<A>(input);
 
@@ -23,6 +24,8 @@ export async function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) 
 
 export abstract class SharedBase<Options> {
 
+    abstract get [max](): number;
+
     /**
      * Performs the specified `task` for each element in the input.
      * 
@@ -31,38 +34,7 @@ export abstract class SharedBase<Options> {
      * @param {Task<A, any>} task The task to run for each item.
      * @returns {Promise<void>}
      */
-    async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
-        const iterator = await this.run(() => processTaskInput(input, task));
-
-        const promises: Set<Promise<any>> = new Set();
-        let done = false;
-
-        const catchAndAbort = (err: any) => {
-            done = true;
-            throw err;
-        };
-
-        while (!done) {
-            const res = await iterator.next();
-            if (res.done)
-                break;
-
-            const jobPromise = this.run(async () => {
-                const result = await task(await res.value);
-                if (result === interrupt) {
-                    done = true;
-                    iterator.return?.();
-                }
-            });
-
-            const removeJob = () => promises.delete(jobPromise);
-            promises.add(jobPromise.then(removeJob).catch(catchAndAbort));
-        }
-
-        if (promises.size > 0) {
-            await Promise.all(promises);
-        }
-    }
+    abstract forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void>;
 
     /**
      * Performs the specified `task` function on each element in the `input`, 

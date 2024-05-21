@@ -1,12 +1,13 @@
 import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './options';
-import { SharedBase } from './shared-base';
-import type { Job, RunnableTask } from './types';
+import { Queue } from './queue';
+import { SharedBase, interrupt, max, processTaskInput } from './shared-base';
+import type { Input, Job, RunnableTask, Task } from './types';
 
 export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     #options: ConcurrencyCommonOptions;
     #currentRunning: number = 0;
-    #queue: Job<any>[] = [];
+    #queue: Queue<Job<any>> = new Queue();
 
     /**
      * Performs the specified `task` for each element in the `input`.
@@ -126,21 +127,13 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         this.options = options;
     }
 
-    #runJob<T>(task: () => Promise<T> | T): Promise<T> {
-        const job = new Promise<T>((resolve, reject) => this.#queue.push({ task, resolve, reject }));
-        if (!this.#isFull) {
-            this.#run();
-        }
-        return job;
-    }
-
     async #run() {
         while (this.#queue.length) {
-            const job = this.#queue.pop()!;
+            const job = this.#queue.shift()!;
 
             this.#currentRunning++;
 
-            await Promise.resolve(job.task())
+            await Promise.resolve(job.task(...job.args))
                 .then(job.resolve)
                 .catch(job.reject);
 
@@ -149,12 +142,48 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
             }
 
             this.#currentRunning--;
-            await Promise.resolve();
         }
     }
 
     override async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
-        return await this.#runJob(() => task(...args));
+        const job = new Promise<B>((resolve, reject) => this.#queue.push({ task, resolve, reject, args }));
+        if (!this.#isFull) {
+            this.#run();
+        }
+        return job;
+    }
+
+    override async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
+        const iterator = processTaskInput(input, task);
+
+        let done = false;
+        const jobCount = this[max];
+
+        const catchAndAbort = (err: any) => {
+            done = true;
+            throw err;
+        };
+
+        const promises: Promise<any>[] = new Array(jobCount);
+        for (let i = 0; i < jobCount; i++) {
+            promises[i] = this.run(async () => {
+                while (true) {
+                    const res = await iterator.next();
+                    if (res.done || done)
+                        break;
+
+                    await (async () => {
+                        const result = await task(await res.value);
+                        if (result === interrupt) {
+                            done = true;
+                            iterator.return?.();
+                        }
+                    })().catch(catchAndAbort);
+                }
+            }).catch(catchAndAbort);;
+        }
+
+        await Promise.all(promises);
     }
 
     override set options(options: ConcurrencyCommonOptions) {
@@ -174,11 +203,15 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
             options.concurrencyInterval = void 0;
         }
 
-        this.#options = { ...this.#options, ...options};
+        this.#options = { ...this.#options, ...options };
     }
 
     get #isFull(): boolean {
         return this.#currentRunning >= this.#options.maxConcurrency;
+    }
+
+    override get [max](){
+        return this.#options.maxConcurrency;
     }
 
 }
