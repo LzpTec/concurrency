@@ -25,9 +25,11 @@
     "build": "tsup",
     "prepublish": "pnpm run build",
     "release": "commit-and-tag-version",
+    "release:major": "commit-and-tag-version --release-as major",
     "release:minor": "commit-and-tag-version --release-as minor",
     "release:patch": "commit-and-tag-version --release-as patch",
-    "release:major": "commit-and-tag-version --release-as major"
+    "release:alpha": "commit-and-tag-version --prerelease alpha",
+    "release:rc": "commit-and-tag-version --prerelease rc"
   },
   "devDependencies": {
     "@ava/typescript": "^4.1.0",
