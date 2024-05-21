@@ -128,6 +128,9 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     async #run() {
+        if (this.#currentRunning >= this.#options.maxConcurrency)
+            return;
+
         while (this.#queue.length) {
             const job = this.#queue.shift()!;
 
@@ -145,11 +148,11 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         }
     }
 
-    override async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
-        const job = new Promise<B>((resolve, reject) => this.#queue.push({ task, resolve, reject, args }));
-        if (!this.#isFull) {
+    override run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
+        const job = new Promise<B>((resolve, reject) => {
+            this.#queue.push({ task, resolve, reject, args });
             this.#run();
-        }
+        });
         return job;
     }
 
@@ -206,8 +209,8 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         this.#options = { ...this.#options, ...options };
     }
 
-    get #isFull(): boolean {
-        return this.#currentRunning >= this.#options.maxConcurrency;
+    override get options() {
+        return { ...this.#options };
     }
 
     override get [max]() {

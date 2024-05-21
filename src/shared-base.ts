@@ -83,6 +83,11 @@ export abstract class SharedBase<Options> {
     abstract set options(options: Options);
 
     /**
+     * Instance Options.
+     */
+    abstract get options(): Options;
+
+    /**
      * Performs the specified `task` function on each element in the `input`, and returns an array that contains the results.
      *
      * @template A
