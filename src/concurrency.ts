@@ -1,9 +1,12 @@
-import { Queue } from './collections';
 import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './options';
 import { SharedBase } from './shared-base';
 import type { Job, RunnableTask } from './types';
 
 export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
+
+    #options: ConcurrencyCommonOptions;
+    #currentRunning: number = 0;
+    #queue: Job<any>[] = [];
 
     /**
      * Performs the specified `task` for each element in the `input`.
@@ -114,10 +117,6 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         return new Concurrency(taskOptions).group(taskOptions.input, taskOptions.task);
     }
 
-    #options: ConcurrencyCommonOptions;
-    #currentRunning: number = 0;
-    #queue: Queue<Job> = new Queue();
-
     /**
      * 
      * @param {ConcurrencyCommonOptions} options 
@@ -128,7 +127,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {
-        const job = new Promise<T>((resolve, reject) => this.#queue.enqueue({ task, resolve, reject }));
+        const job = new Promise<T>((resolve, reject) => this.#queue.push({ task, resolve, reject }));
         if (!this.#isFull) {
             this.#run();
         }
@@ -136,14 +135,14 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     async #run() {
-        while (!this.#queue.isEmpty()) {
-            const job = this.#queue.dequeue()!;
+        while (this.#queue.length) {
+            const job = this.#queue.pop()!;
 
             this.#currentRunning++;
 
             await Promise.resolve(job.task())
-                .then(res => { job.resolve(res); })
-                .catch(err => { job.reject(err); });
+                .then(job.resolve)
+                .catch(job.reject);
 
             if (typeof this.#options.concurrencyInterval === 'number' && this.#options.concurrencyInterval > 0) {
                 await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.concurrencyInterval));

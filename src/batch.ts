@@ -1,9 +1,12 @@
-import { Queue } from './collections';
 import type { BatchCommonOptions, BatchPredicateOptions, BatchTaskOptions } from './options';
 import { SharedBase } from './shared-base';
 import type { Job, RunnableTask } from './types';
 
 export class Batch extends SharedBase<BatchCommonOptions> {
+
+    #options: BatchCommonOptions;
+    #queue: Job<any>[] = [];
+    #jobs: Promise<void>[] = [];
 
     /**
      * Performs the specified `task` for each element in the `input`.
@@ -114,10 +117,6 @@ export class Batch extends SharedBase<BatchCommonOptions> {
         return new Batch(taskOptions).group(taskOptions.input, taskOptions.task);
     }
 
-    #options: BatchCommonOptions;
-    #queue: Queue<Job> = new Queue();
-    #jobs: Promise<void>[] = [];
-
     /**
      * 
      * @param {BatchCommonOptions} options 
@@ -128,7 +127,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     #runJob<T>(task: () => Promise<T> | T): Promise<T> {
-        const job = new Promise<T>((resolve, reject) => this.#queue.enqueue({ task, resolve, reject }));
+        const job = new Promise<T>((resolve, reject) => this.#queue.push({ task, resolve, reject }));
         if (!this.#jobs.length) {
             this.#run();
         }
@@ -136,15 +135,15 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     async #run() {
-        while (!this.#queue.isEmpty()) {
-            const job = this.#queue.dequeue()!;
+        while (this.#queue.length) {
+            const job = this.#queue.pop()!;
 
             this.#jobs[this.#jobs.length] = Promise
                 .resolve(job.task())
-                .then(res => job.resolve(res))
-                .catch(err => job.reject(err));
+                .then(job.resolve)
+                .catch(job.reject);
 
-            if (this.#isFull || this.#queue.isEmpty()) {
+            if (this.#jobs.length >= this.#options.batchSize || this.#queue.length === 0) {
                 await Promise.all(this.#jobs);
 
                 if (typeof this.#options.batchInterval === 'number' && this.#options.batchInterval > 0) {
@@ -178,10 +177,6 @@ export class Batch extends SharedBase<BatchCommonOptions> {
         }
 
         this.#options = { ...this.#options, ...options };
-    }
-
-    get #isFull(): boolean {
-        return this.#jobs.length >= this.#options.batchSize;
     }
 
 }

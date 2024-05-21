@@ -4,4 +4,4 @@ export type Task<A, B> = (item: A) => Promise<B> | B;
 
 export type Input<A> = AsyncIterable<A | Promise<A>> | Iterable<A | Promise<A>>;
 
-export type Job = { task: Function; resolve: Function; reject: Function; };
+export type Job<T> = { task: Function; resolve: (data: T) => void; reject: (err: unknown) => void; };
