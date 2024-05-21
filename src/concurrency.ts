@@ -210,7 +210,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         return this.#currentRunning >= this.#options.maxConcurrency;
     }
 
-    override get [max](){
+    override get [max]() {
         return this.#options.maxConcurrency;
     }
 

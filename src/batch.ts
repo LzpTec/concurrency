@@ -215,7 +215,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
         this.#options = { ...this.#options, ...options };
     }
 
-    override get [max](){
+    override get [max]() {
         return this.#options.batchSize;
     }
 

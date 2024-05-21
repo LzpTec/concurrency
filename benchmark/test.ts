@@ -158,12 +158,12 @@ const run = async () => {
                 console.log(`Batch.group ${idx++} - Item ${item}`);
                 setTimeout(() => resolve(item.toString()), 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'BatchInstance.group': await batchInstance.group(data, async (item) => new Promise((resolve) => {
             console.log(`BatchInstance.group ${idx++} - Item ${item}`)
             setTimeout(() => resolve(item.toString()), 400 + (idx * 50));
-        })),
+        })).then(() => idx = 0),
 
         'Concurrency.group': await Concurrency.group({
             input: data,
@@ -172,12 +172,12 @@ const run = async () => {
                 console.log(`Concurrency.group ${idx++}`)
                 setTimeout(() => resolve(item.toString()), 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'ConcurrencyInstance.group': await concurrencyInstance.group(data, async (item) => new Promise((resolve) => {
             console.log(`ConcurrencyInstance.group ${idx++}`)
             setTimeout(() => resolve(item.toString()), 400 + (idx * 50));
-        })),
+        })).then(() => idx = 0),
     };
     group;
     console.log(JSON.stringify(group));
@@ -193,12 +193,12 @@ const run = async () => {
                 console.log(`Batch.filter ${idx++} - Item ${item}`)
                 setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'BatchInstance.filter': await batchInstance.filter(data, async (item) => new Promise((resolve) => {
             console.log(`BatchInstance.filter ${idx++} - Item ${item}`)
             setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
-        })),
+        })).then(() => idx = 0),
 
         'Concurrency.filter': await Concurrency.filter({
             input: data,
@@ -207,16 +207,16 @@ const run = async () => {
                 console.log(`Concurrency.filter ${idx++}`)
                 setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'ConcurrencyInstance.filter': await concurrencyInstance.filter(data, async (item) => new Promise((resolve) => {
             console.log(`ConcurrencyInstance.filter ${idx++}`)
             setTimeout(() => resolve(item % 2 === 0), 400 + (idx * 50));
-        })),
+        })).then(() => idx = 0),
 
         'Promise.all': await Promise.all(data.map(async item => new Promise((resolve) => {
             setTimeout(() => resolve(item % 2 === 0 ? item : filterSymbol), 400 + (idx * 50));
-        }))).then(res => res.filter((x): x is number => x !== filterSymbol)),
+        }))).then(res => res.filter((x): x is number => x !== filterSymbol)).then(() => idx = 0),
     };
     filter;
     console.log(JSON.stringify(filter));
@@ -230,7 +230,7 @@ const run = async () => {
                 console.log(`Batch.mapSettled ${idx++}`)
                 setTimeout(() => resolve(item ** item + 1), 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'Concurrency.mapSettled': await Concurrency.mapSettled({
             input: data,
@@ -239,12 +239,12 @@ const run = async () => {
                 console.log(`Concurrency.mapSettled ${idx++}`)
                 setTimeout(() => resolve(item ** item + 1), 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'Promise.allSettled': await Promise.allSettled(data.map(async item => new Promise((resolve) => {
             console.log(`Promise.allSettled ${idx++}`)
             setTimeout(() => resolve(item ** item + 1), 400 + (idx * 50));
-        }))),
+        }))).then(() => idx = 0),
 
     };
     mapSettled;
@@ -259,7 +259,7 @@ const run = async () => {
                 console.log(`Batch.forEach ${idx++}`)
                 setTimeout(() => { item ** item + 1; resolve(); }, 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'Concurrency.forEach': await Concurrency.forEach({
             input: data,
@@ -268,12 +268,12 @@ const run = async () => {
                 console.log(`Concurrency.forEach ${idx++}`)
                 setTimeout(() => { item ** item + 1; resolve(); }, 400 + (idx * 50));
             })
-        }),
+        }).then(() => idx = 0),
 
         'Promise.all(void)': await Promise.all(data.map(async item => new Promise<void>((resolve) => {
             console.log(`Promise.all(void) ${idx++}`)
             setTimeout(() => { item ** item + 1; resolve(); }, 400 + (idx * 50));
-        }))),
+        }))).then(() => idx = 0),
 
     };
     forEach;
