@@ -22,7 +22,7 @@ test('Iterable', async t => {
         input: test(),
         batchSize: BATCH_SIZE,
         task: async (value) => {
-            await wait(100);
+            await wait(value * 10);
             calls.push(value);
         }
     });
@@ -33,13 +33,13 @@ test('Iterable', async t => {
 
 test('AsyncIterable', async t => {
     async function* test() {
-        await wait(100);
+        await wait(50);
         yield 1;
-        await wait(100);
+        await wait(50);
         yield 2;
-        await wait(100);
+        await wait(50);
         yield 3;
-        await wait(100);
+        await wait(50);
         yield 4;
         return;
     }
@@ -48,7 +48,8 @@ test('AsyncIterable', async t => {
     await Batch.forEach({
         input: test(),
         batchSize: BATCH_SIZE,
-        task: (value) => {
+        task: async (value) => {
+            await wait(value * 10);
             calls.push(value);
         }
     });
