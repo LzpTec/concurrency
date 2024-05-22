@@ -3,7 +3,7 @@ import colors from 'colors';
 import pMap from 'p-map';
 import { Bench } from 'tinybench';
 
-const dataSize = 512;
+const dataSize = 1024;
 const batchSize = 8;
 const maxConcurrency = 8;
 

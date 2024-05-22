@@ -1,19 +1,13 @@
 import { isAsyncIterator, isIterator } from './guards';
+import { every, filter, find, group, loop, map, mapSettled, some } from './shared';
 import type { Input, RunnableTask, Task } from './types';
 
-export const interrupt = Symbol(`Interrupt`);
-export const max = Symbol(`max`);
-
-export function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) {
+export function validateAndProcessInput<A>(input: Input<A>) {
     const isAsync = isAsyncIterator<A>(input);
     const isSync = isIterator<A>(input);
 
     if (!isAsync && !isSync)
         throw new TypeError("Expected `input(" + typeof input + ")` to be an `Iterable` or `AsyncIterable`");
-
-    const fieldType = typeof task;
-    if (fieldType !== 'function')
-        throw new TypeError("Expected `task(" + fieldType + ")` to be a `function`");
 
     if (isAsync) {
         return input[Symbol.asyncIterator]();
@@ -22,49 +16,21 @@ export function processTaskInput<A, B>(input: Input<A>, task: Task<A, B>) {
     return input[Symbol.iterator]();
 }
 
+export function validateTask<A, B>(task: Task<A, B>) {
+    const fieldType = typeof task;
+    if (fieldType !== 'function')
+        throw new TypeError("Expected `task(" + fieldType + ")` to be a `function`");
+}
+
+export function validatePredicate<A>(predicate: Task<A, boolean>) {
+    const fieldType = typeof predicate;
+    if (fieldType !== 'function')
+        throw new TypeError("Expected `predicate(" + fieldType + ")` to be a `function`");
+}
+
 export abstract class SharedBase<Options> {
 
-    abstract get [max](): number;
-
-    /**
-     * Performs the specified `task` for each element in the input.
-     * 
-     * @template A
-     * @param {Input<A>} input Arguments to pass to the task for each call.
-     * @param {Task<A, any>} task The task to run for each item.
-     * @returns {Promise<void>}
-     */
-    abstract forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void>;
-
-    /**
-     * Performs the specified `task` function on each element in the `input`, 
-     * and creates a Promise that is resolved with an array of results when all of the tasks are resolve or reject.
-     *
-     * @template A
-     * @template B
-     * @param {Input<A>} input Arguments to pass to the task for each call.
-     * @param {Task<A, B>} task The task to run for each item.
-     * @returns {Promise<PromiseSettledResult<B>[]>}
-     */
-    async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
-        const results: PromiseSettledResult<B>[] = new Array();
-
-        await this.forEach(input, async (item) => {
-            try {
-                results.push({
-                    status: 'fulfilled',
-                    value: await task(item)
-                });
-            } catch (err) {
-                results.push({
-                    status: 'rejected',
-                    reason: err
-                });
-            }
-        });
-
-        return results;
-    }
+    abstract [loop] <A>(input: Input<A>, task: Task<A, any>): Promise<void>;
 
     /**
      * Performs a specified task.
@@ -88,6 +54,19 @@ export abstract class SharedBase<Options> {
     abstract get options(): Options;
 
     /**
+     * Performs the specified `task` for each element in the input.
+     * 
+     * @template A
+     * @param {Input<A>} input Arguments to pass to the task for each call.
+     * @param {Task<A, any>} task The task to run for each item.
+     * @returns {Promise<void>}
+     */
+    async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
+        validateTask(task);
+        return this[loop](input, task);
+    }
+
+    /**
      * Performs the specified `task` function on each element in the `input`, and returns an array that contains the results.
      *
      * @template A
@@ -97,10 +76,28 @@ export abstract class SharedBase<Options> {
      * @returns {Promise<B[]>}
      */
     async map<A, B>(input: Input<A>, task: Task<A, B>): Promise<B[]> {
+        validateTask(task);
+
         const results: B[] = new Array();
+        await this[loop](input, (item) => map(results, item, task));
+        return results;
+    }
 
-        await this.forEach(input, async (item) => results.push(await task(item)));
+    /**
+     * Performs the specified `task` function on each element in the `input`, 
+     * and creates a Promise that is resolved with an array of results when all of the tasks are resolve or reject.
+     *
+     * @template A
+     * @template B
+     * @param {Input<A>} input Arguments to pass to the task for each call.
+     * @param {Task<A, B>} task The task to run for each item.
+     * @returns {Promise<PromiseSettledResult<B>[]>}
+     */
+    async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
+        validateTask(task);
 
+        const results: PromiseSettledResult<B>[] = new Array();
+        await this[loop](input, (item) => mapSettled(results, item, task));
         return results;
     }
 
@@ -113,17 +110,10 @@ export abstract class SharedBase<Options> {
      * @returns {Promise<void>}
      */
     async filter<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<A[]> {
-        const fieldType = typeof predicate;
-        if (fieldType !== 'function')
-            throw new TypeError("Expected `predicate(" + fieldType + ")` to be a `function`");
+        validatePredicate(predicate);
 
         const results: A[] = new Array();
-
-        await this.forEach(input, async (item) => {
-            if (await predicate(item))
-                results.push(item);
-        });
-
+        await this[loop](input, (item) => filter(results, item, predicate));
         return results;
     }
 
@@ -136,17 +126,13 @@ export abstract class SharedBase<Options> {
      * @returns {Promise<boolean>}
      */
     async some<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<boolean> {
-        let result = false;
+        validatePredicate(predicate);
 
-        await this
-            .forEach(input, async (item) => {
-                if (await predicate(item)) {
-                    result = true;
-                    return interrupt;
-                }
-            });
+        const result = { value: false };
 
-        return result;
+        await this[loop](input, (item) => some(result, item, predicate));
+
+        return result.value;
     }
 
     /**
@@ -158,17 +144,13 @@ export abstract class SharedBase<Options> {
      * @returns {Promise<A | undefined>}
      */
     async find<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<A | undefined> {
-        let result;
+        validatePredicate(predicate);
 
-        await this
-            .forEach(input, async (item) => {
-                if (await predicate(item)) {
-                    result = item;
-                    return interrupt;
-                }
-            });
+        const result = { value: undefined };
 
-        return result;
+        await this[loop](input, (item) => find(result, item, predicate));
+
+        return result.value;
     }
 
     /**
@@ -180,17 +162,13 @@ export abstract class SharedBase<Options> {
      * @returns {Promise<boolean>}
      */
     async every<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<boolean> {
-        let result = true;
+        validatePredicate(predicate);
 
-        await this
-            .forEach(input, async (item) => {
-                if (!(await predicate(item))) {
-                    result = false;
-                    return interrupt;
-                }
-            });
+        const result = { value: true };
 
-        return result;
+        await this[loop](input, async (item) => every(result, item, predicate));
+
+        return result.value;
     }
 
     /**
@@ -204,19 +182,13 @@ export abstract class SharedBase<Options> {
      * @returns {Promise<{string | symbol}>}
      */
     async group<A>(input: Input<A>, task: Task<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
-        const groups = new Map<string | symbol, A[]>();
+        validateTask(task);
 
-        await this
-            .forEach(input, async (item) => {
-                const group = await task(item);
+        const result = new Map<string | symbol, A[]>();
 
-                if (groups.has(group))
-                    groups.get(group)!.push(item);
-                else
-                    groups.set(group, [item]);
-            });
+        await this[loop](input, (item) => group(result, item, task));
 
-        return Object.fromEntries(groups);
+        return Object.fromEntries(result);
     }
 
 }

@@ -1,6 +1,7 @@
 import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './options';
 import { Queue } from './queue';
-import { SharedBase, interrupt, max, processTaskInput } from './shared-base';
+import { every, filter, find, group, interrupt, loop, map, mapSettled, some } from './shared';
+import { SharedBase, validateAndProcessInput, validatePredicate, validateTask } from './shared-base';
 import type { Input, Job, RunnableTask, Task } from './types';
 
 export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
@@ -8,6 +9,33 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     #options: ConcurrencyCommonOptions;
     #currentRunning: number = 0;
     #queue: Queue<Job<any>> = new Queue();
+
+    static async #loop<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>){
+        const iterator = validateAndProcessInput(taskOptions.input);
+
+        const promises: Promise<void>[] = new Array(taskOptions.maxConcurrency);
+        let done = false;
+
+        for (let i = 0; i < taskOptions.maxConcurrency; i++) {
+            promises[i] = (async () => {
+                while (!done) {
+                    const data = await iterator.next();
+                    if (done || data.done) {
+                        done = true;
+                        return;
+                    }
+
+                    const result = await taskOptions.task(await data.value);
+                    if (result === interrupt) {
+                        done = true;
+                        iterator.return?.();
+                    }
+                }
+            })();
+        }
+
+        await Promise.all(promises);
+    }
 
     /**
      * Performs the specified `task` for each element in the `input`.
@@ -19,103 +47,174 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * @returns {Promise<void>}
      */
     static async forEach<A>(taskOptions: ConcurrencyTaskOptions<A, any>): Promise<void> {
-        return new Concurrency(taskOptions).forEach(taskOptions.input, taskOptions.task);
+        validateTask(taskOptions.task);
+        return this.#loop(taskOptions);
     }
 
     /**
      * Performs the specified `task` function on each element in the `input`, and returns an array that contains the results.
      * 
-     * It limits the concurrent execution to `maxConcurrency`.
+     * It runs in batches with size defined by `batchSize`.
      * 
-     * @template A
-     * @template B
+     * @template A Input Type.
+     * @template B Output Type.
      * @param {ConcurrencyTaskOptions<A, B>} taskOptions Task Options.
      * @returns {Promise<B[]>}
      */
     static async map<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>): Promise<B[]> {
-        return new Concurrency(taskOptions).map(taskOptions.input, taskOptions.task);
+        validateTask(taskOptions.task);
+
+        const results: B[] = new Array();
+
+        await this
+            .#loop({
+                ...taskOptions,
+                task: (item) => map(results, item, taskOptions.task)
+            });
+
+        return results;
     }
 
     /**
      * Performs the specified `task` function on each element in the `input`, 
      * and creates a Promise that is resolved with an array of results when all of the tasks are resolve or reject.
      * 
-     * It limits the concurrent execution to `maxConcurrency`.
+     * It runs in batches with size defined by `batchSize`.
      * 
-     * @template A
-     * @template B
-     * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
+     * @template A Input Type.
+     * @template B Output Type.
+     * @param {ConcurrencyTaskOptions<A, B>} taskOptions Task Options.
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
     static async mapSettled<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
-        return new Concurrency(taskOptions).mapSettled(taskOptions.input, taskOptions.task);
+        validateTask(taskOptions.task);
+
+        const results: PromiseSettledResult<B>[] = new Array();
+
+        await this
+            .#loop({
+                ...taskOptions,
+                task: (item) => mapSettled(results, item, taskOptions.task)
+            });
+
+        return results;
     }
 
     /**
      * Returns the elements that meet the condition specified in the `predicate` function.
      * 
-     * It limits the concurrent execution to `maxConcurrency`.
+     * It runs in batches with size defined by `batchSize`.
      *
-     * @template A
-     * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
+     * @template A Input Type.
+     * @param {ConcurrencyPredicateOptions<A>} taskOptions Task Options.
      * @returns {Promise<A[]>}
      */
     static async filter<A>(taskOptions: ConcurrencyPredicateOptions<A>): Promise<A[]> {
-        return new Concurrency(taskOptions).filter(taskOptions.input, taskOptions.predicate);
+        validatePredicate(taskOptions.predicate);
+
+        const results: A[] = new Array();
+
+        await this
+            .#loop({
+                ...taskOptions,
+                task: (item) => filter(results, item, taskOptions.predicate)
+            });
+
+        return results;
     }
 
     /**
      * Determines whether the specified `predicate` function returns true for any element of `input`.
      * 
-     * It limits the concurrent execution to `maxConcurrency`.
+     * It runs in batches with size defined by `batchSize`.
      * 
      * @template A Input Type.
-     * @param {BatchPredicateOptions<A>} taskOptions Task Options.
+     * @param {ConcurrencyPredicateOptions<A>} taskOptions Task Options.
      * @returns {Promise<boolean>}
      */
     static async some<A>(taskOptions: ConcurrencyPredicateOptions<A>): Promise<boolean> {
-        return new Concurrency(taskOptions).some(taskOptions.input, taskOptions.predicate);
+        validatePredicate(taskOptions.predicate);
+
+        const result = { value: false };
+
+        await this
+            .#loop({
+                ...taskOptions,
+                task: (item) => some(result, item, taskOptions.predicate)
+            });
+
+        return result.value;
     }
 
     /**
      * Returns the `input` value of the first `predicate` that resolves to true, and undefined otherwise.
      * 
-     * It limits the concurrent execution to `maxConcurrency`.
+     * It runs in batches with size defined by `batchSize`.
      * 
      * @template A Input Type.
-     * @param {BatchPredicateOptions<A>} taskOptions Task Options.
+     * @param {ConcurrencyPredicateOptions<A>} taskOptions Task Options.
      * @returns {Promise<A | undefined>}
      */
     static async find<A>(taskOptions: ConcurrencyPredicateOptions<A>): Promise<A | undefined> {
-        return new Concurrency(taskOptions).find(taskOptions.input, taskOptions.predicate);
+        validatePredicate(taskOptions.predicate);
+
+        const result = { value: undefined };
+
+        await this
+            .#loop({
+                ...taskOptions,
+                task: (item) => find(result, item, taskOptions.predicate)
+            });
+
+        return result.value;
     }
 
     /**
      * Determines whether all the elements of `input` satisfy the specified `predicate`.
      * 
-     * It limits the concurrent execution to `maxConcurrency`.
+     * It runs in batches with size defined by `batchSize`.
      * 
      * @template A Input Type.
-     * @param {BatchPredicateOptions<A>} taskOptions Task Options.
+     * @param {ConcurrencyPredicateOptions<A>} taskOptions Task Options.
      * @returns {Promise<boolean>}
      */
     static async every<A>(taskOptions: ConcurrencyPredicateOptions<A>): Promise<boolean> {
-        return new Concurrency(taskOptions).every(taskOptions.input, taskOptions.predicate);
+        validatePredicate(taskOptions.predicate);
+
+        const result = { value: true };
+
+        await this
+            .#loop({
+                ...taskOptions,
+                task: (item) => every(result, item, taskOptions.predicate)
+            });
+
+        return result.value;
     }
 
     /**
-     * This method groups the elements of the `input` according to the string values returned by a provided `task`. 
+     * This method groups the elements of the `input` according to the string values returned by a provided `task`.
      * 
-     * The returned object has separate properties for each group, containing arrays with the elements in the group. 
+     * The returned object has separate properties for each group, containing arrays with the elements in the group.
      * 
-     * It limits the concurrent execution to `maxConcurrency`.
+     * It runs in batches with size defined by `batchSize`.
      * 
      * @template A Input Type.
-     * @param {ConcurrencyTaskOptions<A>} taskOptions Task Options.
-     * @returns {Promise<{string | symbol}>}
+     * @param {ConcurrencyTaskOptions<A, string | symbol>} taskOptions Task Options.
+     * @returns {Promise<{ [key: string | symbol]: A[] }>}
      */
     static async group<A>(taskOptions: ConcurrencyTaskOptions<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
-        return new Concurrency(taskOptions).group(taskOptions.input, taskOptions.task);
+        validateTask(taskOptions.task);
+
+        const result = new Map<string | symbol, A[]>();
+
+        await this
+            .#loop({
+                ...taskOptions,
+                task: (item) => group(result, item, taskOptions.task)
+            });
+
+        return Object.fromEntries(result);
     }
 
     /**
@@ -156,11 +255,11 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         return job;
     }
 
-    override async forEach<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
-        const iterator = processTaskInput(input, task);
+    override async [loop]<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
+        const iterator = validateAndProcessInput(input);
 
         let done = false;
-        const jobCount = this[max];
+        const jobCount = this.#options.maxConcurrency;
 
         const catchAndAbort = (err: any) => {
             done = true;
@@ -211,10 +310,6 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     override get options() {
         return { ...this.#options };
-    }
-
-    override get [max]() {
-        return this.#options.maxConcurrency;
     }
 
 }
