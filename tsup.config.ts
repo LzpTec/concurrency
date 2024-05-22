@@ -10,6 +10,7 @@ export default defineConfig({
     entry: ['src/index.ts', 'src/batch.ts', 'src/concurrency.ts'],
     dts: true,
     minify: true,
+    sourcemap: true,
     platform: 'neutral',
     target: 'es2017'
 });
