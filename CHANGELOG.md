@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.1.0](https://github.com/LzpTec/concurrency/compare/v3.0.1...v3.1.0) (2024-05-22)
+
+
+### Features
+
+* added getter to options property. ([2c05280](https://github.com/LzpTec/concurrency/commit/2c052804bf81d11f82dbfc9bd33c065da4542e6a))
+* Export sourceMaps. ([5fe52a9](https://github.com/LzpTec/concurrency/commit/5fe52a947a8e612871fd2fa1d8ca151ab3142b2a))
+
+
+### Performance
+
+* Change asyncIterator handler. ([772e56e](https://github.com/LzpTec/concurrency/commit/772e56e0146ff04bc18193fb7f0109d97f7d952b))
+* Change internal Concurrency and Batch implementation for better performance. ([9a09b75](https://github.com/LzpTec/concurrency/commit/9a09b752dc93016c09934adcb9eee129b04c0912))
+* Improve performance of static methods and optimized the internal struct. ([e39eb6d](https://github.com/LzpTec/concurrency/commit/e39eb6db9e4946ca6d55292ed43eb4392ad70cbc))
+* Remove queue implementation to improve performance. ([bf1a997](https://github.com/LzpTec/concurrency/commit/bf1a997b533546bf1c7dd914f8e74a4f59d76e66))
+
+
+### Misc
+
+* Add alpha and rc releases. ([27f486f](https://github.com/LzpTec/concurrency/commit/27f486f54d5c6154b3d215ede9680166b4e7d3df))
+
+
+### Dependencies
+
+* Update deps. ([630ffed](https://github.com/LzpTec/concurrency/commit/630ffed6ff7d8ab239fd6f4cce6380b0dfc9c2da))
+
 ## [3.0.1](https://github.com/LzpTec/concurrency/compare/v3.0.0...v3.0.1) (2024-05-03)
 
 
