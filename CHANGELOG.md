@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.1.1](https://github.com/LzpTec/concurrency/compare/v3.1.0...v3.1.1) (2024-05-24)
+
+
+### Bug Fixes
+
+* throw on non-async tasks. ([96129c7](https://github.com/LzpTec/concurrency/commit/96129c7a7ed76b4fdb2b484ba9743bcf2f96fefb))
+
 ## [3.1.0](https://github.com/LzpTec/concurrency/compare/v3.0.1...v3.1.0) (2024-05-22)
 
 
