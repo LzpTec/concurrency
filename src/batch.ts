@@ -238,10 +238,12 @@ export class Batch extends SharedBase<BatchCommonOptions> {
                     if (!job)
                         return;
 
-                    await Promise
-                        .resolve(job.task(...job.args))
-                        .then(job.resolve)
-                        .catch(job.reject);
+                    try {
+                        const result = await job.task(...job.args);
+                        job.resolve(result);
+                    } catch (err) {
+                        job.reject(err);
+                    }
                 })();
             }
             await Promise.all(promises);

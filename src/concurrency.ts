@@ -10,7 +10,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     #currentRunning: number = 0;
     #queue: Queue<Job<any>> = new Queue();
 
-    static async #loop<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>){
+    static async #loop<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>) {
         const iterator = validateAndProcessInput(taskOptions.input);
 
         const promises: Promise<void>[] = new Array(taskOptions.maxConcurrency);
@@ -235,9 +235,12 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
             this.#currentRunning++;
 
-            await Promise.resolve(job.task(...job.args))
-                .then(job.resolve)
-                .catch(job.reject);
+            try {
+                const result = await job.task(...job.args);
+                job.resolve(result);
+            } catch (err) {
+                job.reject(err);
+            }
 
             if (typeof this.#options.concurrencyInterval === 'number' && this.#options.concurrencyInterval > 0) {
                 await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.concurrencyInterval));
