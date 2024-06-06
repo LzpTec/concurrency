@@ -2,15 +2,32 @@ import type { BatchCommonOptions, BatchPredicateOptions, BatchTaskOptions } from
 import { Queue } from './queue';
 import { SharedBase, validateAndProcessInput, validatePredicate, validateTask } from './shared-base';
 import { every, filter, find, group, interrupt, loop, map, mapSettled, some } from './shared';
-import type { Input, Job, RunnableTask, Task } from './types';
+import type { Input, RunnableTask, Task } from './types';
+
+function validateOptions(options: BatchCommonOptions) {
+    if (!Number.isInteger(options.batchSize) || options.batchSize < 0) {
+        throw new Error('Parameter `batchSize` must be a positive integer greater than 0!');
+    }
+
+    if (typeof options.batchInterval === 'number') {
+        if (isNaN(options.batchInterval)) {
+            throw new Error('Parameter `batchInterval` invalid!');
+        }
+
+        if (options.batchInterval < 0) {
+            throw new Error('Parameter `batchInterval` must be a positive number!');
+        }
+    }
+}
 
 export class Batch extends SharedBase<BatchCommonOptions> {
 
     #options: BatchCommonOptions;
     #isRunning: boolean = false;
-    #queue: Queue<Job<any>> = new Queue();
+    #queue: Queue<() => Promise<void>> = new Queue();
 
     static async #loop<A, B>(taskOptions: BatchTaskOptions<A, B>) {
+        validateOptions(taskOptions);
         const iterator = validateAndProcessInput(taskOptions.input);
 
         const promises: Promise<void>[] = new Array(taskOptions.batchSize);
@@ -33,9 +50,11 @@ export class Batch extends SharedBase<BatchCommonOptions> {
                 })();
             }
             await Promise.all(promises);
-        }
 
-        await Promise.all(promises);
+            if (typeof taskOptions.batchInterval === 'number') {
+                await new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.batchInterval));
+            }
+        }
     }
 
     /**
@@ -230,25 +249,18 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     async #run() {
         while (this.#queue.length) {
             const jobCount = this.#options.batchSize;
-            const promises: Promise<void>[] = new Array(jobCount);
+            const promises: Promise<void>[] = new Array();
 
             for (let i = 0; i < jobCount; i++) {
-                promises[i] = (async () => {
-                    const job = this.#queue.shift();
-                    if (!job)
-                        return;
+                const job = this.#queue.dequeue();
+                if (!job) break;
 
-                    try {
-                        const result = await job.task(...job.args);
-                        job.resolve(result);
-                    } catch (err) {
-                        job.reject(err);
-                    }
-                })();
+                promises.push(job());
             }
+
             await Promise.all(promises);
 
-            if (typeof this.#options.batchInterval === 'number' && this.#options.batchInterval > 0) {
+            if (typeof this.#options.batchInterval === 'number') {
                 await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.batchInterval));
             }
         }
@@ -258,8 +270,11 @@ export class Batch extends SharedBase<BatchCommonOptions> {
 
     override run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
         const job = new Promise<B>((resolve, reject) => {
-            this.#queue.push({ task, resolve, reject, args });
+            const callback = () => Promise.resolve(task(...args))
+                .then(resolve)
+                .catch(reject);
 
+            this.#queue.enqueue(callback);
             if (this.#isRunning) return;
             this.#isRunning = true;
             this.#run();
@@ -286,12 +301,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
                     while (!done && !res.done) {
                         await Promise
                             .resolve(res.value)
-                            .then(args => new Promise<B>((resolve, reject) => {
-                                this.#queue.push({ task, resolve, reject, args: [args] });
-                                if (this.#isRunning) return;
-                                this.#isRunning = true;
-                                this.#run();
-                            }));
+                            .then(args => this.run(task, args));
 
                         res = await iterator.next();
                     }
@@ -303,22 +313,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     override set options(options: BatchCommonOptions) {
-        if (!Number.isInteger(options.batchSize)) {
-            throw new Error('Parameter `batchSize` invalid!');
-        }
-
-        if (typeof options.batchInterval === 'number') {
-            if (isNaN(options.batchInterval)) {
-                throw new Error('Parameter `batchInterval` invalid!');
-            }
-
-            if (options.batchInterval < 0) {
-                throw new Error('Parameter `batchInterval` must be a positive number!');
-            }
-        } else {
-            options.batchInterval = void 0;
-        }
-
+        validateOptions(options);
         this.#options = { ...this.#options, ...options };
     }
 

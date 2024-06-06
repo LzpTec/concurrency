@@ -6,12 +6,12 @@ export class Queue<T> {
         this.#elements = Array.isArray(elements) ? elements : [];
     }
 
-    push(element: T) {
+    enqueue(element: T) {
         this.#elements.push(element);
         return this;
     }
 
-    shift() {
+    dequeue() {
         if (this.length === 0)
             return undefined;
 
@@ -28,10 +28,4 @@ export class Queue<T> {
     get length() {
         return this.#elements.length - this.#offset;
     }
-
-    clear() {
-        this.#elements = [];
-        this.#offset = 0;
-    }
-
 }

@@ -2,15 +2,32 @@ import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, Concurrency
 import { Queue } from './queue';
 import { every, filter, find, group, interrupt, loop, map, mapSettled, some } from './shared';
 import { SharedBase, validateAndProcessInput, validatePredicate, validateTask } from './shared-base';
-import type { Input, Job, RunnableTask, Task } from './types';
+import type { Input, RunnableTask, Task } from './types';
+
+function validateOptions(options: ConcurrencyCommonOptions) {
+    if (!Number.isInteger(options.maxConcurrency) || options.maxConcurrency < 0) {
+        throw new Error('Parameter `maxConcurrency` must be a positive integer greater than 0!');
+    }
+
+    if (typeof options.concurrencyInterval === 'number') {
+        if (isNaN(options.concurrencyInterval)) {
+            throw new Error('Parameter `concurrencyInterval` invalid!');
+        }
+
+        if (options.concurrencyInterval < 0) {
+            throw new Error('Parameter `concurrencyInterval` must be a positive number!');
+        }
+    }
+}
 
 export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     #options: ConcurrencyCommonOptions;
     #currentRunning: number = 0;
-    #queue: Queue<Job<any>> = new Queue();
+    #queue: Queue<() => Promise<void>> = new Queue();
 
     static async #loop<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>) {
+        validateOptions(taskOptions);
         const iterator = validateAndProcessInput(taskOptions.input);
 
         const promises: Promise<void>[] = new Array(taskOptions.maxConcurrency);
@@ -29,6 +46,11 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
                     if (result === interrupt) {
                         done = true;
                         iterator.return?.();
+                        break;
+                    }
+
+                    if (typeof taskOptions.concurrencyInterval === 'number') {
+                        await new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval));
                     }
                 }
             })();
@@ -230,35 +252,34 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         if (this.#currentRunning >= this.#options.maxConcurrency)
             return;
 
-        while (this.#queue.length) {
-            const job = this.#queue.shift()!;
+        this.#currentRunning++;
 
-            this.#currentRunning++;
+        let job = this.#queue.dequeue();
+        while (job) {
+            await job();
 
-            try {
-                const result = await job.task(...job.args);
-                job.resolve(result);
-            } catch (err) {
-                job.reject(err);
-            }
-
-            if (typeof this.#options.concurrencyInterval === 'number' && this.#options.concurrencyInterval > 0) {
+            if (typeof this.#options.concurrencyInterval === 'number') {
                 await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.concurrencyInterval));
             }
 
-            this.#currentRunning--;
+            job = this.#queue.dequeue()!;
         }
+        this.#currentRunning--;
     }
 
     override run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
         const job = new Promise<B>((resolve, reject) => {
-            this.#queue.push({ task, resolve, reject, args });
+            const callback = () => Promise.resolve(task(...args))
+                .then(resolve)
+                .catch(reject);
+
+            this.#queue.enqueue(callback);
             this.#run();
         });
         return job;
     }
 
-    override async [loop]<A>(input: Input<A>, task: Task<A, any>): Promise<void> {
+    override async [loop]<A, B>(input: Input<A>, task: Task<A, B>): Promise<void> {
         const iterator = validateAndProcessInput(input);
 
         let done = false;
@@ -283,7 +304,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
                             done = true;
                             iterator.return?.();
                         }
-                    })().catch(catchAndAbort);
+                    })();
                 }
             }).catch(catchAndAbort);;
         }
@@ -292,22 +313,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     override set options(options: ConcurrencyCommonOptions) {
-        if (!Number.isInteger(options.maxConcurrency)) {
-            throw new Error('Parameter `maxConcurrency` invalid!');
-        }
-
-        if (typeof options.concurrencyInterval === 'number') {
-            if (isNaN(options.concurrencyInterval)) {
-                throw new Error('Parameter `concurrencyInterval` invalid!');
-            }
-
-            if (options.concurrencyInterval < 0) {
-                throw new Error('Parameter `concurrencyInterval` must be a positive number!');
-            }
-        } else {
-            options.concurrencyInterval = void 0;
-        }
-
+        validateOptions(options);
         this.#options = { ...this.#options, ...options };
     }
 
