@@ -1,4 +1,4 @@
-import { Batch, Concurrency } from '@lzptec/concurrency';
+import { Batch, Concurrency, Throttle } from '@lzptec/concurrency';
 import colors from 'colors';
 import pMap from 'p-map';
 import { Bench } from 'tinybench';
@@ -6,6 +6,7 @@ import { Bench } from 'tinybench';
 const dataSize = 2048;
 const batchSize = 8;
 const maxConcurrency = 8;
+const interval = 0;
 
 const instanceData = Array.from({ length: dataSize }, (_, i) => i);
 const fixedData = [...instanceData, ...instanceData];
@@ -13,7 +14,13 @@ const fixedData = [...instanceData, ...instanceData];
 const batchInstance = new Batch({
     batchSize
 });
+
 const concurrencyInstance = new Concurrency({
+    maxConcurrency
+});
+
+const throttleInstance = new Throttle({
+    interval,
     maxConcurrency
 });
 
@@ -37,6 +44,16 @@ const map = async (bench: Bench) => {
 
             await Promise.all([p1]);
         })
+        .add(`Throttle#map - ${fixedData.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            const p1 = Throttle.map({
+                input: fixedData,
+                maxConcurrency,
+                interval,
+                task: async (item) => new Promise<number>((resolve) => resolve(item))
+            });
+
+            await Promise.all([p1]);
+        })
 
         .add(`BatchInstance#map - ${instanceData.length * 2} items - ${batchSize} items per batch`, async () => {
             const p1 = batchInstance.map(instanceData, async (item) => new Promise<number>((resolve) => resolve(item)));
@@ -47,6 +64,12 @@ const map = async (bench: Bench) => {
         .add(`ConcurrencyInstance#map - ${instanceData.length * 2} items - ${maxConcurrency} concurrently jobs`, async () => {
             const p1 = concurrencyInstance.map(instanceData, async (item) => new Promise<number>((resolve) => resolve(item)));
             const p2 = concurrencyInstance.map(instanceData, async (item) => new Promise<number>((resolve) => resolve(item)));
+
+            await Promise.all([p1, p2]);
+        })
+        .add(`ThrottleInstance#map - ${instanceData.length * 2} items - ${maxConcurrency} concurrently jobs`, async () => {
+            const p1 = throttleInstance.map(instanceData, async (item) => new Promise<number>((resolve) => resolve(item)));
+            const p2 = throttleInstance.map(instanceData, async (item) => new Promise<number>((resolve) => resolve(item)));
 
             await Promise.all([p1, p2]);
         })

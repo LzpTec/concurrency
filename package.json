@@ -42,6 +42,7 @@
     "typescript": "5.4.5"
   },
   "ava": {
+    "timeout": "30s",
     "extensions": [
       "ts"
     ],
@@ -64,6 +65,11 @@
       "require": "./dist/concurrency.js",
       "import": "./dist/concurrency.mjs",
       "types": "./dist/concurrency.d.ts"
+    },
+    "./throttle": {
+      "require": "./dist/throttle.js",
+      "import": "./dist/throttle.mjs",
+      "types": "./dist/throttle.d.ts"
     }
   }
 }

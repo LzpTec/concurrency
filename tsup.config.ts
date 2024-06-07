@@ -7,7 +7,7 @@ export default defineConfig({
     clean: true,
     outDir: 'dist',
     format: ['cjs', 'esm'],
-    entry: ['src/index.ts', 'src/batch.ts', 'src/concurrency.ts'],
+    entry: ['src/index.ts', 'src/batch.ts', 'src/concurrency.ts', 'src/throttle.ts'],
     dts: true,
     minify: true,
     sourcemap: true,

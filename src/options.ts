@@ -71,3 +71,39 @@ export interface ConcurrencyPredicateOptions<A> extends ConcurrencyCommonOptions
      */
     predicate: Task<A, boolean>;
 }
+
+export interface ThrottleCommonOptions {
+    /**
+     * Max concurrency
+     */
+    maxConcurrency: number;
+
+    /**
+     * Interval(in MS)
+     */
+    interval: number;
+}
+
+export interface ThrottleTaskOptions<A, B> extends ThrottleCommonOptions {
+    /**
+     * Arguments to pass to the task for each call.
+     */
+    input: Input<A>;
+
+    /**
+     * The task to run for each item.
+     */
+    task: Task<A, B>;
+}
+
+export interface ThrottlePredicateOptions<A> extends ThrottleCommonOptions {
+    /**
+     * Arguments to pass to the predicate for each call.
+     */
+    input: Input<A>;
+
+    /**
+     * The predicate function is called one time for each element in the `input`.
+     */
+    predicate: Task<A, boolean>;
+}

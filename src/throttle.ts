@@ -1,37 +1,37 @@
-import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './options';
+import type { ThrottleCommonOptions, ThrottleTaskOptions, ThrottlePredicateOptions } from './options';
 import { Queue } from './queue';
 import { every, filter, find, group, interrupt, loop, map, mapSettled, some } from './shared';
 import { SharedBase, validateAndProcessInput, validatePredicate, validateTask } from './shared-base';
 import type { Input, RunnableTask, Task } from './types';
 
-function validateOptions(options: ConcurrencyCommonOptions) {
-    if (!Number.isInteger(options.maxConcurrency) || options.maxConcurrency < 0) {
-        throw new Error('Parameter `maxConcurrency` must be a positive integer greater than 0!');
+function validateOptions(options: ThrottleCommonOptions) {
+    if (!Number.isInteger(options.maxConcurrency)) {
+        throw new Error('Parameter `maxConcurrency` must be a integer!');
     }
 
-    if (typeof options.concurrencyInterval === 'number') {
-        if (isNaN(options.concurrencyInterval)) {
-            throw new Error('Parameter `concurrencyInterval` invalid!');
-        }
-
-        if (options.concurrencyInterval < 0) {
-            throw new Error('Parameter `concurrencyInterval` must be a positive number!');
-        }
+    if (!Number.isInteger(options.interval) || options.interval < 0) {
+        throw new Error('Parameter `interval` must be a positive integer greater than 0!');
     }
 }
 
-export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
-
-    #options: ConcurrencyCommonOptions;
-    #currentRunning: number = 0;
+export class Throttle extends SharedBase<ThrottleCommonOptions> {
     #queue: Queue<() => Promise<void>> = new Queue();
+    #currentStart = 0;
+    #currentRunning = 0;
 
-    static async #loop<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>) {
+    #options: ThrottleCommonOptions;
+
+    static async #loop<A, B>(taskOptions: ThrottleTaskOptions<A, B>) {
+        // const t = new Throttle(taskOptions);
+        // return t[loop](taskOptions.input, taskOptions.task);
+
         validateOptions(taskOptions);
         const iterator = validateAndProcessInput(taskOptions.input);
 
         const promises: Promise<void>[] = new Array(taskOptions.maxConcurrency);
         let done = false;
+
+        let currentStart = performance.now();
 
         for (let i = 0; i < taskOptions.maxConcurrency; i++) {
             promises[i] = (async () => {
@@ -49,9 +49,14 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
                         break;
                     }
 
-                    if (typeof taskOptions.concurrencyInterval === 'number') {
-                        await new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval));
+                    const now = performance.now();
+                    if ((now - currentStart) >= taskOptions.interval) {
+                        currentStart = now;
                     }
+
+                    const interval = (currentStart + taskOptions.interval) - now;
+                    if (interval > 1)
+                        await new Promise<void>((resolve) => setTimeout(() => resolve(), interval));
                 }
             })();
         }
@@ -65,10 +70,10 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * It limits the concurrent execution to `maxConcurrency`.
      *
      * @template A
-     * @param {ConcurrencyTaskOptions<A, any>} taskOptions Task Options.
+     * @param {ThrottleTaskOptions<A, any>} taskOptions Task Options.
      * @returns {Promise<void>}
      */
-    static async forEach<A>(taskOptions: ConcurrencyTaskOptions<A, any>): Promise<void> {
+    static async forEach<A>(taskOptions: ThrottleTaskOptions<A, any>): Promise<void> {
         validateTask(taskOptions.task);
         return this.#loop(taskOptions);
     }
@@ -80,10 +85,10 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * 
      * @template A Input Type.
      * @template B Output Type.
-     * @param {ConcurrencyTaskOptions<A, B>} taskOptions Task Options.
+     * @param {ThrottleTaskOptions<A, B>} taskOptions Task Options.
      * @returns {Promise<B[]>}
      */
-    static async map<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>): Promise<B[]> {
+    static async map<A, B>(taskOptions: ThrottleTaskOptions<A, B>): Promise<B[]> {
         validateTask(taskOptions.task);
 
         const results: B[] = new Array();
@@ -105,10 +110,10 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * 
      * @template A Input Type.
      * @template B Output Type.
-     * @param {ConcurrencyTaskOptions<A, B>} taskOptions Task Options.
+     * @param {ThrottleTaskOptions<A, B>} taskOptions Task Options.
      * @returns {Promise<PromiseSettledResult<B>[]>}
      */
-    static async mapSettled<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
+    static async mapSettled<A, B>(taskOptions: ThrottleTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
         validateTask(taskOptions.task);
 
         const results: PromiseSettledResult<B>[] = new Array();
@@ -128,10 +133,10 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * It runs in batches with size defined by `batchSize`.
      *
      * @template A Input Type.
-     * @param {ConcurrencyPredicateOptions<A>} taskOptions Task Options.
+     * @param {ThrottlePredicateOptions<A>} taskOptions Task Options.
      * @returns {Promise<A[]>}
      */
-    static async filter<A>(taskOptions: ConcurrencyPredicateOptions<A>): Promise<A[]> {
+    static async filter<A>(taskOptions: ThrottlePredicateOptions<A>): Promise<A[]> {
         validatePredicate(taskOptions.predicate);
 
         const results: A[] = new Array();
@@ -151,10 +156,10 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * It runs in batches with size defined by `batchSize`.
      * 
      * @template A Input Type.
-     * @param {ConcurrencyPredicateOptions<A>} taskOptions Task Options.
+     * @param {ThrottlePredicateOptions<A>} taskOptions Task Options.
      * @returns {Promise<boolean>}
      */
-    static async some<A>(taskOptions: ConcurrencyPredicateOptions<A>): Promise<boolean> {
+    static async some<A>(taskOptions: ThrottlePredicateOptions<A>): Promise<boolean> {
         validatePredicate(taskOptions.predicate);
 
         const result = { value: false };
@@ -174,10 +179,10 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * It runs in batches with size defined by `batchSize`.
      * 
      * @template A Input Type.
-     * @param {ConcurrencyPredicateOptions<A>} taskOptions Task Options.
+     * @param {ThrottlePredicateOptions<A>} taskOptions Task Options.
      * @returns {Promise<A | undefined>}
      */
-    static async find<A>(taskOptions: ConcurrencyPredicateOptions<A>): Promise<A | undefined> {
+    static async find<A>(taskOptions: ThrottlePredicateOptions<A>): Promise<A | undefined> {
         validatePredicate(taskOptions.predicate);
 
         const result = { value: undefined };
@@ -197,10 +202,10 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * It runs in batches with size defined by `batchSize`.
      * 
      * @template A Input Type.
-     * @param {ConcurrencyPredicateOptions<A>} taskOptions Task Options.
+     * @param {ThrottlePredicateOptions<A>} taskOptions Task Options.
      * @returns {Promise<boolean>}
      */
-    static async every<A>(taskOptions: ConcurrencyPredicateOptions<A>): Promise<boolean> {
+    static async every<A>(taskOptions: ThrottlePredicateOptions<A>): Promise<boolean> {
         validatePredicate(taskOptions.predicate);
 
         const result = { value: true };
@@ -222,10 +227,10 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * It runs in batches with size defined by `batchSize`.
      * 
      * @template A Input Type.
-     * @param {ConcurrencyTaskOptions<A, string | symbol>} taskOptions Task Options.
+     * @param {ThrottleTaskOptions<A, string | symbol>} taskOptions Task Options.
      * @returns {Promise<{ [key: string | symbol]: A[] }>}
      */
-    static async group<A>(taskOptions: ConcurrencyTaskOptions<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
+    static async group<A>(taskOptions: ThrottleTaskOptions<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
         validateTask(taskOptions.task);
 
         const result = new Map<string | symbol, A[]>();
@@ -241,9 +246,9 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     /**
      * 
-     * @param {ConcurrencyCommonOptions} options 
+     * @param {ThrottleCommonOptions} options 
      */
-    constructor(options: ConcurrencyCommonOptions) {
+    constructor(options: ThrottleCommonOptions) {
         super();
         this.options = options;
     }
@@ -254,18 +259,23 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
         this.#currentRunning++;
 
-        let job;
+        let job: Function | undefined;
         while (job = this.#queue.dequeue()) {
-            await job();
+            void job();
 
-            if (typeof this.#options.concurrencyInterval === 'number') {
-                await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.concurrencyInterval));
+            const now = performance.now();
+            if ((now - this.#currentStart) >= this.#options.interval) {
+                this.#currentStart = now;
             }
+
+            const interval = (this.#currentStart + this.#options.interval) - now;
+            if (interval > 1)
+                await new Promise<void>((resolve) => setTimeout(() => resolve(), interval));
         }
         this.#currentRunning--;
     }
 
-    override run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
+    override async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
         const job = new Promise<B>((resolve, reject) => {
             const callback = () => Promise.resolve(task(...args))
                 .then(resolve)
@@ -277,7 +287,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         return job;
     }
 
-    override async [loop]<A, B>(input: Input<A>, task: Task<A, B>): Promise<void> {
+    override async[loop]<A, B>(input: Input<A>, task: Task<A, B>): Promise<void> {
         const iterator = validateAndProcessInput(input);
 
         let done = false;
@@ -310,7 +320,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         await Promise.all(promises);
     }
 
-    override set options(options: ConcurrencyCommonOptions) {
+    override set options(options: ThrottleCommonOptions) {
         validateOptions(options);
         this.#options = { ...this.#options, ...options };
     }
@@ -321,4 +331,4 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
 }
 
-Object.freeze(Concurrency);
+Object.freeze(Throttle);
