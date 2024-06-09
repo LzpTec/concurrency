@@ -5,23 +5,23 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node --loader @swc-node/register/esm benchmark.ts",
-    "test": "node --loader @swc-node/register/esm test.ts"
+    "start": "node --import @swc-node/register/esm-register benchmark.ts",
+    "test": "node --import @swc-node/register/esm-register test.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@lzptec/concurrency": "../",
-    "@thi.ng/bench": "^3.4.19",
-    "@types/node": "^18.11.6",
+    "@thi.ng/bench": "^3.5.6",
+    "@types/node": "^20.14.2",
     "colors": "^1.4.0",
-    "p-map": "^7.0.1",
+    "p-map": "^7.0.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.4.5"
   },
   "devDependencies": {
-    "@swc-node/register": "^1.6.8",
-    "tinybench": "^2.6.0"
+    "@swc-node/register": "^1.9.2",
+    "tinybench": "^2.8.0"
   }
 }
