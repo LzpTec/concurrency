@@ -101,6 +101,34 @@ const mapSettled = async (bench: Bench) => {
                 task: async (item) => new Promise<number>((resolve) => resolve(item))
             });
         })
+        .add(`Throttle#mapSettled - ${fixedData.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await Throttle.mapSettled({
+                input: fixedData,
+                maxConcurrency,
+                interval,
+                task: async (item) => new Promise<number>((resolve) => resolve(item))
+            });
+        })
+
+        .add(`BatchInstance#mapSettled - ${instanceData.length * 2} items - ${batchSize} items per batch`, async () => {
+            const p1 = batchInstance.mapSettled(instanceData, async (item) => new Promise<number>((resolve) => resolve(item)));
+            const p2 = batchInstance.mapSettled(instanceData, async (item) => new Promise<number>((resolve) => resolve(item)));
+
+            await Promise.all([p1, p2]);
+        })
+        .add(`ConcurrencyInstance#mapSettled - ${instanceData.length * 2} items - ${maxConcurrency} concurrently jobs`, async () => {
+            const p1 = concurrencyInstance.mapSettled(instanceData, async (item) => new Promise<number>((resolve) => resolve(item)));
+            const p2 = concurrencyInstance.mapSettled(instanceData, async (item) => new Promise<number>((resolve) => resolve(item)));
+
+            await Promise.all([p1, p2]);
+        })
+        .add(`ThrottleInstance#mapSettled - ${instanceData.length * 2} items - ${maxConcurrency} concurrently jobs`, async () => {
+            const p1 = throttleInstance.mapSettled(instanceData, async (item) => new Promise<number>((resolve) => resolve(item)));
+            const p2 = throttleInstance.mapSettled(instanceData, async (item) => new Promise<number>((resolve) => resolve(item)));
+
+            await Promise.all([p1, p2]);
+        })
+
         .add(`p-map - ${fixedData.length} items - ${maxConcurrency} concurrently jobs`, async () => {
             await pMap(fixedData, async (item) => new Promise<number>((resolve) => resolve(item)), { concurrency: maxConcurrency, stopOnError: false });
         })
@@ -116,24 +144,50 @@ const forEach = async (bench: Bench) => {
             await Batch.forEach({
                 input: fixedData,
                 batchSize,
-                task: async (item) => new Promise<void>((resolve) => {
-                    (item); resolve();
-                })
+                task: async () => new Promise<void>((resolve) => resolve())
             });
         })
         .add(`Concurrency#forEach - ${fixedData.length} items - ${maxConcurrency} concurrently jobs`, async () => {
             await Concurrency.forEach({
                 input: fixedData,
                 maxConcurrency,
-                task: async (item) => new Promise<void>((resolve) => {
-                    (item); resolve();
-                })
+                task: async () => new Promise<void>((resolve) => resolve())
             });
         })
+        .add(`Throttle#forEach - ${fixedData.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await Throttle.forEach({
+                input: fixedData,
+                maxConcurrency,
+                interval,
+                task: async () => new Promise<void>((resolve) => resolve())
+            });
+        })
+
+        .add(`BatchInstance#forEach - ${instanceData.length * 2} items - ${batchSize} items per batch`, async () => {
+            const p1 = batchInstance.forEach(instanceData, async () => new Promise<void>((resolve) => resolve()));
+            const p2 = batchInstance.forEach(instanceData, async () => new Promise<void>((resolve) => resolve()));
+
+            await Promise.all([p1, p2]);
+        })
+        .add(`ConcurrencyInstance#forEach - ${instanceData.length * 2} items - ${maxConcurrency} concurrently jobs`, async () => {
+            const p1 = concurrencyInstance.forEach(instanceData, async () => new Promise<void>((resolve) => resolve()));
+            const p2 = concurrencyInstance.forEach(instanceData, async () => new Promise<void>((resolve) => resolve()));
+
+            await Promise.all([p1, p2]);
+        })
+        .add(`ThrottleInstance#forEach - ${instanceData.length * 2} items - ${maxConcurrency} concurrently jobs`, async () => {
+            const p1 = throttleInstance.forEach(instanceData, async () => new Promise<void>((resolve) => resolve()));
+            const p2 = throttleInstance.forEach(instanceData, async () => new Promise<void>((resolve) => resolve()));
+
+            await Promise.all([p1, p2]);
+        })
+
         .add(`p-map - ${fixedData.length} items - ${maxConcurrency} concurrently jobs`, async () => {
-            await pMap(fixedData, async (item) => new Promise<void>((resolve) => {
-                (item); resolve();
-            }), { concurrency: maxConcurrency });
+            await pMap(
+                fixedData,
+                async () => new Promise<void>((resolve) => resolve()),
+                { concurrency: maxConcurrency }
+            );
         })
 
     await bench.run();
@@ -155,6 +209,14 @@ const filter = async (bench: Bench) => {
             await Concurrency.filter({
                 input: fixedData,
                 maxConcurrency,
+                predicate: async (item) => new Promise<boolean>((resolve) => resolve(item % 2 === 0))
+            });
+        })
+        .add(`Throttle#filter - ${fixedData.length} items - ${maxConcurrency} concurrently jobs`, async () => {
+            await Throttle.filter({
+                input: fixedData,
+                maxConcurrency,
+                interval,
                 predicate: async (item) => new Promise<boolean>((resolve) => resolve(item % 2 === 0))
             });
         })
@@ -184,6 +246,7 @@ const filter = async (bench: Bench) => {
     await bench.run();
     printResults('filter', bench);
 };
+filter;
 
 const run = async () => {
     const bench = new Bench({
