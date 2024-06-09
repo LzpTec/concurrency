@@ -88,11 +88,12 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         validateTask(taskOptions.task);
 
         const results: B[] = new Array();
+        const task = map(results, taskOptions.task);
 
         await this
             .#loop({
                 ...taskOptions,
-                task: (item) => map(results, item, taskOptions.task)
+                task
             });
 
         return results;
@@ -113,11 +114,12 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         validateTask(taskOptions.task);
 
         const results: PromiseSettledResult<B>[] = new Array();
+        const task = mapSettled(results, taskOptions.task);
 
         await this
             .#loop({
                 ...taskOptions,
-                task: (item) => mapSettled(results, item, taskOptions.task)
+                task
             });
 
         return results;
@@ -136,11 +138,12 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         validatePredicate(taskOptions.predicate);
 
         const results: A[] = new Array();
+        const task = filter(results, taskOptions.predicate);
 
         await this
             .#loop({
                 ...taskOptions,
-                task: (item) => filter(results, item, taskOptions.predicate)
+                task
             });
 
         return results;
@@ -159,11 +162,12 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         validatePredicate(taskOptions.predicate);
 
         const result = { value: false };
+        const task = some(result, taskOptions.predicate);
 
         await this
             .#loop({
                 ...taskOptions,
-                task: (item) => some(result, item, taskOptions.predicate)
+                task
             });
 
         return result.value;
@@ -182,11 +186,12 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         validatePredicate(taskOptions.predicate);
 
         const result = { value: undefined };
+        const task = find(result, taskOptions.predicate);
 
         await this
             .#loop({
                 ...taskOptions,
-                task: (item) => find(result, item, taskOptions.predicate)
+                task
             });
 
         return result.value;
@@ -205,11 +210,12 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         validatePredicate(taskOptions.predicate);
 
         const result = { value: true };
+        const task = every(result, taskOptions.predicate);
 
         await this
             .#loop({
                 ...taskOptions,
-                task: (item) => every(result, item, taskOptions.predicate)
+                task
             });
 
         return result.value;
@@ -230,11 +236,12 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         validateTask(taskOptions.task);
 
         const result = new Map<string | symbol, A[]>();
+        const task = group(result, taskOptions.task);
 
         await this
             .#loop({
                 ...taskOptions,
-                task: (item) => group(result, item, taskOptions.task)
+                task
             });
 
         return Object.fromEntries(result);

@@ -79,7 +79,8 @@ export abstract class SharedBase<Options> {
         validateTask(task);
 
         const results: B[] = new Array();
-        await this[loop](input, (item) => map(results, item, task));
+        const fn = map(results, task);
+        await this[loop](input, fn);
         return results;
     }
 
@@ -97,7 +98,8 @@ export abstract class SharedBase<Options> {
         validateTask(task);
 
         const results: PromiseSettledResult<B>[] = new Array();
-        await this[loop](input, (item) => mapSettled(results, item, task));
+        const fn = mapSettled(results, task);
+        await this[loop](input, fn);
         return results;
     }
 
@@ -113,7 +115,8 @@ export abstract class SharedBase<Options> {
         validatePredicate(predicate);
 
         const results: A[] = new Array();
-        await this[loop](input, (item) => filter(results, item, predicate));
+        const fn = filter(results, predicate);
+        await this[loop](input, fn);
         return results;
     }
 
@@ -129,9 +132,8 @@ export abstract class SharedBase<Options> {
         validatePredicate(predicate);
 
         const result = { value: false };
-
-        await this[loop](input, (item) => some(result, item, predicate));
-
+        const fn = some(result, predicate);
+        await this[loop](input, fn);
         return result.value;
     }
 
@@ -147,9 +149,8 @@ export abstract class SharedBase<Options> {
         validatePredicate(predicate);
 
         const result = { value: undefined };
-
-        await this[loop](input, (item) => find(result, item, predicate));
-
+        const fn = find(result, predicate);
+        await this[loop](input, fn);
         return result.value;
     }
 
@@ -165,9 +166,8 @@ export abstract class SharedBase<Options> {
         validatePredicate(predicate);
 
         const result = { value: true };
-
-        await this[loop](input, async (item) => every(result, item, predicate));
-
+        const fn = every(result, predicate);
+        await this[loop](input, fn);
         return result.value;
     }
 
@@ -185,8 +185,8 @@ export abstract class SharedBase<Options> {
         validateTask(task);
 
         const result = new Map<string | symbol, A[]>();
-
-        await this[loop](input, (item) => group(result, item, task));
+        const fn = group(result, task);
+        await this[loop](input, fn);
 
         return Object.fromEntries(result);
     }
