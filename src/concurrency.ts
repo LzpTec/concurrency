@@ -28,35 +28,36 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     static async #loop<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>) {
         validateOptions(taskOptions);
-        const iterator = validateAndProcessInput(taskOptions.input);
-
-        const promises: Promise<void>[] = new Array(taskOptions.maxConcurrency);
+        const { input, maxConcurrency, concurrencyInterval, task } = taskOptions;
+        const iterator = validateAndProcessInput(input);
         let done = false;
 
-        for (let i = 0; i < taskOptions.maxConcurrency; i++) {
-            promises[i] = (async () => {
-                while (!done) {
-                    const data = await iterator.next();
-                    if (done || data.done) {
-                        done = true;
-                        return;
-                    }
+        await new Promise<void>((resolve, reject) => {
+            for (let i = 0; i < maxConcurrency; i++) {
+                (async () => {
+                    while (!done) {
+                        const data = await iterator.next();
+                        if (done || data.done) {
+                            done = true;
+                            return;
+                        }
 
-                    const result = await taskOptions.task(await data.value);
-                    if (result === interrupt) {
-                        done = true;
-                        iterator.return?.();
-                        break;
-                    }
+                        const result = await task(await data.value);
+                        if (result === interrupt) {
+                            done = true;
+                            iterator.return?.();
+                            break;
+                        }
 
-                    if (typeof taskOptions.concurrencyInterval === 'number') {
-                        await new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.concurrencyInterval));
+                        if (typeof concurrencyInterval === 'number') {
+                            await new Promise<void>((resolve) => setTimeout(() => resolve(), concurrencyInterval));
+                        }
                     }
-                }
-            })();
-        }
-
-        await Promise.all(promises);
+                })()
+                    .then(() => (--i === 0) ? resolve() : undefined)
+                    .catch(reject);
+            }
+        });
     }
 
     /**
@@ -249,20 +250,15 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     async #run() {
-        if (this.#currentRunning >= this.#options.maxConcurrency)
-            return;
-
-        this.#currentRunning++;
-
+        const { concurrencyInterval } = this.#options;
         let job;
         while (job = this.#queue.dequeue()) {
             await job();
 
-            if (typeof this.#options.concurrencyInterval === 'number') {
-                await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.concurrencyInterval));
+            if (typeof concurrencyInterval === 'number') {
+                await new Promise<void>((resolve) => setTimeout(() => resolve(), concurrencyInterval));
             }
         }
-        this.#currentRunning--;
     }
 
     override run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
@@ -272,7 +268,10 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
                 .catch(reject);
 
             this.#queue.enqueue(callback);
-            this.#run();
+            if (this.#currentRunning >= this.#options.maxConcurrency) return;
+
+            this.#currentRunning++;
+            queueMicrotask(() => this.#run().then(() => this.#currentRunning--));
         });
         return job;
     }
@@ -281,33 +280,35 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         const iterator = validateAndProcessInput(input);
 
         let done = false;
-        const jobCount = this.#options.maxConcurrency;
+        const { maxConcurrency } = this.#options;
 
         const catchAndAbort = (err: any) => {
             done = true;
             throw err;
         };
 
-        const promises: Promise<any>[] = new Array(jobCount);
-        for (let i = 0; i < jobCount; i++) {
-            promises[i] = this.run(async () => {
-                while (true) {
-                    const res = await iterator.next();
-                    if (res.done || done)
-                        break;
+        await new Promise<void>((resolve, reject) => {
+            for (let i = 0; i < maxConcurrency; i++) {
+                this.run(async () => {
+                    while (true) {
+                        const res = await iterator.next();
+                        if (res.done || done)
+                            break;
 
-                    await (async () => {
-                        const result = await task(await res.value);
-                        if (result === interrupt) {
-                            done = true;
-                            iterator.return?.();
-                        }
-                    })();
-                }
-            }).catch(catchAndAbort);;
-        }
-
-        await Promise.all(promises);
+                        await (async () => {
+                            const result = await task(await res.value);
+                            if (result === interrupt) {
+                                done = true;
+                                iterator.return?.();
+                            }
+                        })();
+                    }
+                })
+                    .then(() => (--i === 0) ? resolve() : undefined)
+                    .catch(catchAndAbort)
+                    .catch(reject);
+            }
+        });
     }
 
     override set options(options: ConcurrencyCommonOptions) {

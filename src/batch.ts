@@ -29,31 +29,30 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     static async #loop<A, B>(taskOptions: BatchTaskOptions<A, B>) {
         validateOptions(taskOptions);
         const iterator = validateAndProcessInput(taskOptions.input);
-
-        const promises: Promise<void>[] = new Array(taskOptions.batchSize);
+        const { batchSize, batchInterval, task } = taskOptions;
         let done = false;
 
         while (!done) {
-            for (let i = 0; i < taskOptions.batchSize; i++) {
-                promises[i] = (async () => {
-                    const data = await iterator.next();
-                    if (done || data.done) {
-                        done = true;
-                        return;
-                    }
+            await new Promise<void>((resolve, reject) => {
+                for (let i = 0; i < batchSize; i++) {
+                    (async () => {
+                        const data = await iterator.next();
+                        done = done || !!data.done;
+                        if (done) return;
 
-                    const result = await taskOptions.task(await data.value);
-                    if (result === interrupt) {
-                        done = true;
-                        iterator.return?.();
-                    }
-                })();
-            }
-            await Promise.all(promises);
+                        const result = await task(await data.value);
+                        if (result === interrupt) {
+                            done = true;
+                            iterator.return?.();
+                        }
+                    })()
+                        .then(() => (--i === 0) ? resolve() : undefined)
+                        .catch(reject);
+                }
+            });
 
-            if (typeof taskOptions.batchInterval === 'number') {
-                await new Promise<void>((resolve) => setTimeout(() => resolve(), taskOptions.batchInterval));
-            }
+            if (typeof batchInterval === 'number')
+                await new Promise<void>((resolve) => setTimeout(resolve, batchInterval));
         }
     }
 
@@ -247,25 +246,29 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     async #run() {
+        const { batchSize, batchInterval } = this.#options;
+
         while (this.#queue.length) {
-            const jobCount = this.#options.batchSize;
-            const promises: Promise<void>[] = new Array();
+            await new Promise<void>((resolve, reject) => {
+                for (let i = 0; i < batchSize; i++) {
+                    queueMicrotask(async () => {
+                        try {
+                            const job = this.#queue.dequeue();
+                            if (!job) return;
 
-            for (let i = 0; i < jobCount; i++) {
-                const job = this.#queue.dequeue();
-                if (!job) break;
+                            await job();
+                            if (--i === 0) resolve()
+                        } catch (err) {
+                            reject(err);
+                        }
+                    });
+                }
+            });
 
-                promises.push(job());
-            }
-
-            await Promise.all(promises);
-
-            if (typeof this.#options.batchInterval === 'number') {
-                await new Promise<void>((resolve) => setTimeout(() => resolve(), this.#options.batchInterval));
+            if (typeof batchInterval === 'number') {
+                await new Promise<void>((resolve) => setTimeout(() => resolve(), batchInterval));
             }
         }
-
-        this.#isRunning = false;
     }
 
     override run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
@@ -277,7 +280,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
             this.#queue.enqueue(callback);
             if (this.#isRunning) return;
             this.#isRunning = true;
-            this.#run();
+            queueMicrotask(() => this.#run().then(() => this.#isRunning = false));
         });
         return job;
     }
@@ -286,30 +289,22 @@ export class Batch extends SharedBase<BatchCommonOptions> {
         const iterator = validateAndProcessInput(input);
 
         let done = false;
-        const jobCount = this.#options.batchSize;
+        const { batchSize } = this.#options;
 
-        const catchAndAbort = (err: any) => {
-            done = true;
-            throw err;
-        };
-
-        const promises: Promise<any>[] = new Array(jobCount);
-        for (let i = 0, size = jobCount; i < size; i++) {
-            promises[i] = Promise
-                .resolve(iterator.next())
-                .then(async res => {
-                    while (!done && !res.done) {
-                        await Promise
-                            .resolve(res.value)
-                            .then(args => this.run(task, args));
-
-                        res = await iterator.next();
-                    }
-                })
-                .catch(catchAndAbort);
-        }
-
-        await Promise.all(promises);
+        await new Promise<void>((resolve, reject) => {
+            for (let i = 0; i < batchSize; i++) {
+                Promise
+                    .resolve(iterator.next())
+                    .then(async res => {
+                        while (!done && !res.done) {
+                            await this.run(task, await res.value);
+                            res = await iterator.next();
+                        }
+                    })
+                    .then(() => (--i === 0) ? resolve() : undefined)
+                    .catch(() => { done = true; reject(); });
+            }
+        });
     }
 
     override set options(options: BatchCommonOptions) {
