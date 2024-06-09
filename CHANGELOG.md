@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.2.0](https://github.com/LzpTec/concurrency/compare/v3.1.1...v3.2.0) (2024-06-09)
+
+
+### Features
+
+* Params validation on static methods. ([c4f22ab](https://github.com/LzpTec/concurrency/commit/c4f22ab1759c52735a9188b705fe5f7146231b73))
+* Throttle implementation. ([7773c72](https://github.com/LzpTec/concurrency/commit/7773c72112565512467eb6654e28f1823e2063bf))
+
+
+### Performance
+
+* Improve performance and reduce memory usage. ([5dcdac4](https://github.com/LzpTec/concurrency/commit/5dcdac4ed4632ce70638926e7edaab2a894d39da))
+
+
+### Misc
+
+* Improve benchmark for internal tests. ([81f205c](https://github.com/LzpTec/concurrency/commit/81f205cf7dc10981c74d4eb34d3088794c3f5457))
+* Improve task fn. ([8349ae6](https://github.com/LzpTec/concurrency/commit/8349ae6a2721ad53ee1faf2b28cffe1da8f643fe))
+
+
+### Dependencies
+
+* Update deps. ([f60ec33](https://github.com/LzpTec/concurrency/commit/f60ec33a20ad234e2244cd64b18c57247d7b8316))
+
 ## [3.1.1](https://github.com/LzpTec/concurrency/compare/v3.1.0...v3.1.1) (2024-05-24)
 
 
