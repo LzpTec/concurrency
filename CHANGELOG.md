@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.2.1](https://github.com/LzpTec/concurrency/compare/v3.2.0...v3.2.1) (2024-06-12)
+
+
+### Bug Fixes
+
+* Remove queueMicrotask to support node < 11. ([76c445c](https://github.com/LzpTec/concurrency/commit/76c445c4fe55475fa0f2927d24e3a4a4af63c5a8))
+
 ## [3.2.0](https://github.com/LzpTec/concurrency/compare/v3.1.1...v3.2.0) (2024-06-09)
 
 
