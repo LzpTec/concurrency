@@ -25,6 +25,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     #options: ConcurrencyCommonOptions;
     #currentRunning: number = 0;
     #queue: Queue<() => Promise<void>> = new Queue();
+    #promise = Promise.resolve();
 
     static async #loop<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>) {
         validateOptions(taskOptions);
@@ -278,7 +279,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
             if (this.#currentRunning >= this.#options.maxConcurrency) return;
 
             this.#currentRunning++;
-            queueMicrotask(() => this.#run().then(() => this.#currentRunning--));
+            this.#promise.then(() => this.#run().then(() => this.#currentRunning--));
         });
         return job;
     }
