@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.3.0](https://github.com/LzpTec/concurrency/compare/v3.2.1...v3.3.0) (2024-06-13)
+
+
+### Features
+
+* Export Semaphore and Lock. ([154378b](https://github.com/LzpTec/concurrency/commit/154378b1a52358b1e7437bf1530c73530cb85991))
+* Implement Semaphore and Lock classes. ([88b677b](https://github.com/LzpTec/concurrency/commit/88b677b8e31344c4da94e988f490f1bd7ed99085))
+
+
+### Refactor
+
+* Change internal struct. ([f86576d](https://github.com/LzpTec/concurrency/commit/f86576db1b8dcb9e47114bfed72151fea77d6c78))
+* Code cleanup. ([2849a7e](https://github.com/LzpTec/concurrency/commit/2849a7e852d84783b55d804e289a2778b3b8398a))
+
+
+### Docs
+
+* Update docs. ([93345ff](https://github.com/LzpTec/concurrency/commit/93345ff63f4d414a05d1c713df1f60a2104c5d44))
+* Update TODO. ([5dd405a](https://github.com/LzpTec/concurrency/commit/5dd405a5d97add3550d5a06aa765bd2f16bfe2b2))
+
+
+### Misc
+
+* Change lock internal implementation. ([62ac44a](https://github.com/LzpTec/concurrency/commit/62ac44afca8a4e8f136df990b5208a4baf46e07a))
+
+
+### Dependencies
+
+* Update deps. ([4913530](https://github.com/LzpTec/concurrency/commit/49135309078c8fe57f9392b14a6cb5f92680dc9e))
+
 ## [3.2.1](https://github.com/LzpTec/concurrency/compare/v3.2.0...v3.2.1) (2024-06-12)
 
 
