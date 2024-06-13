@@ -70,6 +70,16 @@
       "require": "./dist/throttle.js",
       "import": "./dist/throttle.mjs",
       "types": "./dist/throttle.d.ts"
+    },
+    "./semaphore": {
+      "require": "./dist/semaphore.js",
+      "import": "./dist/semaphore.mjs",
+      "types": "./dist/semaphore.d.ts"
+    },
+    "./lock": {
+      "require": "./dist/lock.js",
+      "import": "./dist/lock.mjs",
+      "types": "./dist/lock.d.ts"
     }
   }
 }
