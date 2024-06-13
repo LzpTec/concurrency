@@ -1,5 +1,9 @@
 # TODO
 
+## 4.X.X
+- [ ] Chain methods.
+- [ ] Run method.
+
 ## 3.X.X
 - [ ] Update docs.
 - [x] Implement Throttle, Semaphore and Lock.
