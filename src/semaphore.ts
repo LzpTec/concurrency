@@ -1,12 +1,20 @@
 import { Queue } from "./base/queue";
-import { Job } from "./base/types";
 
 type SemaphoreOptions = {
     maxConcurrency: number;
 };
 
+type SemaphoreLock = {
+    release: () => void;
+};
+
+type SemaphoreItem = {
+    task: Promise<void>;
+    release: () => void;
+};
+
 export class Semaphore {
-    #currentQueue: Queue<Job<any>> = new Queue();
+    #currentQueue: Queue<SemaphoreItem> = new Queue();
     #running = 0;
     #maxConcurrency = 1;
     #promise = Promise.resolve();
@@ -15,28 +23,40 @@ export class Semaphore {
         this.#maxConcurrency = options?.maxConcurrency ?? 1;
     }
 
-    run(task: Function, ...args: any) {
-        return new Promise((resolve, reject) => {
+    async run<B>(task: () => (B | Promise<B>)): Promise<B>;
+    async run<A extends Array<any>, B>(task: (...args: A) => (B | Promise<B>), ...args: A): Promise<B>;
+
+    async run(task: Function, ...args: any[]) {
+        const { release } = await this.acquire();
+        try {
+            return await task(args);
+        } finally {
+            release();
+        }
+    }
+
+    async acquire(): Promise<SemaphoreLock> {
+        let release: () => void;
+        const task = new Promise<void>((res) => { release = res; });
+
+        return new Promise<SemaphoreLock>((resolve) => {
             this.#currentQueue.enqueue({
-                resolve,
-                reject,
                 task,
-                args,
+                release: () => resolve({ release })
             });
             this.#tryNext();
-        });
+        })
     }
 
     #tryNext() {
         if (!this.#currentQueue.length || this.#running >= this.#maxConcurrency)
             return;
 
-        const { resolve, reject, task, args } = this.#currentQueue.dequeue()!;
+        const { release, task } = this.#currentQueue.dequeue()!;
         this.#running++;
         this.#promise
-            .then(() => task(...args))
-            .then((res) => resolve(res))
-            .catch((err) => reject(err))
+            .then(release)
+            .then(() => task)
             .finally(() => {
                 this.#running--;
                 this.#tryNext();
@@ -49,8 +69,7 @@ export class Semaphore {
         };
     }
 
-    set options(options: SemaphoreOptions){
+    set options(options: SemaphoreOptions) {
         this.#maxConcurrency = options.maxConcurrency;
     }
-
 }

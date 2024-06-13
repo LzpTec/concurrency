@@ -15,7 +15,7 @@ function validateOptions(options: ThrottleCommonOptions) {
 }
 
 export class Throttle extends SharedBase<ThrottleCommonOptions> {
-    
+
     #options: ThrottleCommonOptions;
     #queue: Queue<() => Promise<void>> = new Queue();
     #currentStart = 0;
@@ -281,7 +281,8 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
 
     override async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
         const job = new Promise<B>((resolve, reject) => {
-            const callback = () => Promise.resolve(task(...args))
+            const callback = () => this.#promise
+                .then(() => task(...args))
                 .then(resolve)
                 .catch(reject);
 

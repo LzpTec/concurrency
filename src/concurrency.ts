@@ -23,7 +23,8 @@ function validateOptions(options: ConcurrencyCommonOptions) {
 export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     #options: ConcurrencyCommonOptions;
-    #semaphore: Semaphore;
+    #semaphore: Semaphore = new Semaphore();
+    #promise = Promise.resolve();
 
     static async #loop<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>) {
         validateOptions(taskOptions);
@@ -252,13 +253,13 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      */
     constructor(options: ConcurrencyCommonOptions) {
         super();
-        this.#semaphore = new Semaphore();
         this.options = options;
     }
 
     override run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
         const job = new Promise<B>((resolve, reject) => {
-            const callback = () => Promise.resolve(task(...args))
+            const callback = () => this.#promise
+                .then(() => task(...args))
                 .then(resolve)
                 .catch(reject);
 
