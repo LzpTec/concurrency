@@ -66,6 +66,39 @@ const data = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const dataMultipliedBy2 = await concurrency.map(data, (value) => value * 2);
 ```
 
+## Throttle
+
+### Global
+```ts
+import { Throttle } from '@lzptec/concurrency';
+
+const data = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+// Execute multiplication concurrently(Maximum of 2 execution per 200ms)
+// EX: 1, 2 ... 3 ... 4,5 ... 6 ... 7 ... 8, 9
+const dataMultipliedBy2 = await Throttle.map({
+    input: data,
+    maxConcurrency: 2,
+    interval: 200,
+    task: (value) => value * 2
+});
+```
+
+### Instance
+```ts
+import { Throttle } from '@lzptec/concurrency';
+
+const concurrency = new Throttle({
+    maxConcurrency: 2,
+    interval: 200
+});
+const data = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+// Execute multiplication concurrently(Maximum of 2 execution per 200ms)
+// EX: 1, 2 ... 3 ... 4,5 ... 6 ... 7 ... 8, 9
+const dataMultipliedBy2 = await concurrency.map(data, (value) => value * 2);
+```
+
 # API
 
 ## Task\<A, B\> = (item: A) => B

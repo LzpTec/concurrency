@@ -15,11 +15,12 @@ function validateOptions(options: ThrottleCommonOptions) {
 }
 
 export class Throttle extends SharedBase<ThrottleCommonOptions> {
+    
+    #options: ThrottleCommonOptions;
     #queue: Queue<() => Promise<void>> = new Queue();
     #currentStart = 0;
     #currentRunning = 0;
-
-    #options: ThrottleCommonOptions;
+    #promise = Promise.resolve();
 
     static async #loop<A, B>(taskOptions: ThrottleTaskOptions<A, B>) {
         // const t = new Throttle(taskOptions);
@@ -289,7 +290,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
             if (this.#currentRunning >= this.#options.maxConcurrency) return;
 
             this.#currentRunning++;
-            queueMicrotask(() => this.#run().then(() => this.#currentRunning--));
+            this.#promise.then(() => this.#run().then(() => this.#currentRunning--));
         });
         return job;
     }

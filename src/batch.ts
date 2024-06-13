@@ -25,6 +25,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     #options: BatchCommonOptions;
     #isRunning: boolean = false;
     #queue: Queue<() => Promise<void>> = new Queue();
+    #promise = Promise.resolve();
 
     static async #loop<A, B>(taskOptions: BatchTaskOptions<A, B>) {
         validateOptions(taskOptions);
@@ -258,7 +259,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
         while (this.#queue.length) {
             await new Promise<void>((resolve, reject) => {
                 for (let i = 0; i < batchSize; i++) {
-                    queueMicrotask(async () => {
+                    this.#promise.then(async () => {
                         try {
                             const job = this.#queue.dequeue();
                             if (!job) return;
@@ -287,7 +288,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
             this.#queue.enqueue(callback);
             if (this.#isRunning) return;
             this.#isRunning = true;
-            queueMicrotask(() => this.#run().then(() => this.#isRunning = false));
+            this.#promise.then(() => this.#run().then(() => this.#isRunning = false));
         });
         return job;
     }
