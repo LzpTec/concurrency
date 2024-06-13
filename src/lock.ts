@@ -1,26 +1,26 @@
 import { Queue } from "./base/queue";
 
 export class Lock {
-    readonly #queue: Queue<Function> = new Queue();
-    private acquired = false;
+    #queue: Queue<Function> = new Queue();
+    #locked = false;
 
-    public async acquire(): Promise<void> {
-        if (!this.acquired) {
-            this.acquired = true;
-        } else {
+    async acquire(): Promise<void> {
+        if (this.#locked) {
             return new Promise<void>((resolve) => this.#queue.enqueue(resolve));
+        } else {
+            this.#locked = true;
         }
     }
 
-    public async release() {
-        if (this.#queue.length === 0 && this.acquired) {
-            this.acquired = false;
+    async release() {
+        if (this.#queue.length === 0 && this.#locked) {
+            this.#locked = false;
             return;
         }
 
-        const continuation = this.#queue.dequeue()!;
+        const next = this.#queue.dequeue()!;
         return new Promise<void>((resolve) => {
-            continuation();
+            next();
             resolve();
         });
     }
