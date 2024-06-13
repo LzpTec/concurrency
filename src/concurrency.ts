@@ -1,8 +1,8 @@
-import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './options';
-import { Queue } from './queue';
-import { every, filter, find, group, interrupt, loop, map, mapSettled, some } from './shared';
-import { SharedBase, validateAndProcessInput, validatePredicate, validateTask } from './shared-base';
-import type { Input, RunnableTask, Task } from './types';
+import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './base/options';
+import { every, filter, find, group, interrupt, loop, map, mapSettled, some } from './base/shared';
+import { SharedBase, validateAndProcessInput, validatePredicate, validateTask } from './base/shared-base';
+import type { Input, RunnableTask, Task } from './base/types';
+import { Semaphore } from './semaphore';
 
 function validateOptions(options: ConcurrencyCommonOptions) {
     if (!Number.isInteger(options.maxConcurrency) || options.maxConcurrency < 0) {
@@ -23,8 +23,7 @@ function validateOptions(options: ConcurrencyCommonOptions) {
 export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
     #options: ConcurrencyCommonOptions;
-    #currentRunning: number = 0;
-    #queue: Queue<() => Promise<void>> = new Queue();
+    #semaphore: Semaphore;
 
     static async #loop<A, B>(taskOptions: ConcurrencyTaskOptions<A, B>) {
         validateOptions(taskOptions);
@@ -253,19 +252,8 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      */
     constructor(options: ConcurrencyCommonOptions) {
         super();
+        this.#semaphore = new Semaphore();
         this.options = options;
-    }
-
-    async #run() {
-        const { concurrencyInterval } = this.#options;
-        let job;
-        while (job = this.#queue.dequeue()) {
-            await job();
-
-            if (typeof concurrencyInterval === 'number') {
-                await new Promise<void>((resolve) => setTimeout(() => resolve(), concurrencyInterval));
-            }
-        }
     }
 
     override run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
@@ -274,11 +262,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
                 .then(resolve)
                 .catch(reject);
 
-            this.#queue.enqueue(callback);
-            if (this.#currentRunning >= this.#options.maxConcurrency) return;
-
-            this.#currentRunning++;
-            queueMicrotask(() => this.#run().then(() => this.#currentRunning--));
+            this.#semaphore.run(callback);
         });
         return job;
     }
@@ -321,6 +305,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     override set options(options: ConcurrencyCommonOptions) {
         validateOptions(options);
         this.#options = { ...this.#options, ...options };
+        this.#semaphore.options = this.#options;
     }
 
     override get options() {
