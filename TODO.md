@@ -2,7 +2,8 @@
 
 ## 3.X.X
 - [ ] Update docs.
-- [ ] Improve performance.
+- [x] Implement Throttle, Semaphore and Lock.
+- [x] Improve performance.
 - [x] Implement basic tests.
 - [x] Update deps.
 - [x] Reduce project size.
