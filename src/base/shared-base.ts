@@ -1,5 +1,5 @@
 import { every, filter, find, group, loop, map, mapSettled, some, validatePredicate, validateTask } from './shared';
-import type { Input, RunnableTask, Task } from './types';
+import type { Group, Input, RunnableTask, Task } from './types';
 
 export abstract class SharedBase<Options> {
 
@@ -146,9 +146,9 @@ export abstract class SharedBase<Options> {
      * @template A Input Type.
      * @param {Input<A>} input Arguments to pass to the task for each call.
      * @param {Task<A, string | symbol>} task A function to execute for each element in the `input`. It should return a value that can get coerced into a property key (string or symbol) indicating the group of the current element.
-     * @returns {Promise<{string | symbol}>}
+     * @returns {Promise<Group<A>>}
      */
-    async group<A>(input: Input<A>, task: Task<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
+    async group<A>(input: Input<A>, task: Task<A, string | symbol>): Promise<Group<A>> {
         validateTask(task);
 
         const { task: fn, results } = group(task);

@@ -1,7 +1,7 @@
 import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './base/options';
 import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared';
 import { SharedBase } from './base/shared-base';
-import type { Input, RunnableTask, Task } from './base/types';
+import type { Group, Input, RunnableTask, Task } from './base/types';
 import { Semaphore } from './semaphore';
 
 function validateOptions(options: ConcurrencyCommonOptions) {
@@ -50,7 +50,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
                         }
 
                         if (typeof concurrencyInterval === 'number') {
-                            await new Promise<void>((resolve) => setTimeout(() => resolve(), concurrencyInterval));
+                            await new Promise<void>((resolve) => setTimeout(resolve, concurrencyInterval));
                         }
                     }
                 })()
@@ -224,9 +224,9 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      * 
      * @template A Input Type.
      * @param {ConcurrencyTaskOptions<A, string | symbol>} taskOptions Task Options.
-     * @returns {Promise<{ [key: string | symbol]: A[] }>}
+     * @returns {Promise<Group<A>>}
      */
-    static async group<A>(taskOptions: ConcurrencyTaskOptions<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
+    static async group<A>(taskOptions: ConcurrencyTaskOptions<A, string | symbol>): Promise<Group<A>> {
         validateTask(taskOptions.task);
 
         const { task, results } = group(taskOptions.task);

@@ -2,7 +2,7 @@ import type { BatchCommonOptions, BatchPredicateOptions, BatchTaskOptions } from
 import { Queue } from './base/queue';
 import { SharedBase } from './base/shared-base';
 import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared';
-import type { Input, RunnableTask, Task } from './base/types';
+import type { Group, Input, RunnableTask, Task } from './base/types';
 
 function validateOptions(options: BatchCommonOptions) {
     if (!Number.isInteger(options.batchSize) || options.batchSize < 0) {
@@ -221,9 +221,9 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      * 
      * @template A Input Type.
      * @param {BatchTaskOptions<A>} taskOptions Task Options.
-     * @returns {Promise<{ [key: string | symbol]: A[] }>}
+     * @returns {Promise<Group<A>>}
      */
-    static async group<A>(taskOptions: BatchTaskOptions<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
+    static async group<A>(taskOptions: BatchTaskOptions<A, string | symbol>): Promise<Group<A>> {
         validateTask(taskOptions.task);
 
         const { task, results } = group(taskOptions.task);
@@ -267,7 +267,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
             });
 
             if (typeof batchInterval === 'number') {
-                await new Promise<void>((resolve) => setTimeout(() => resolve(), batchInterval));
+                await new Promise<void>((resolve) => setTimeout(resolve, batchInterval));
             }
         }
     }
