@@ -1,7 +1,7 @@
 import type { ThrottleCommonOptions, ThrottleTaskOptions, ThrottlePredicateOptions } from './base/options';
 import { Queue } from './base/queue';
-import { every, filter, find, group, interrupt, loop, map, mapSettled, some } from './base/shared';
-import { SharedBase, validateAndProcessInput, validatePredicate, validateTask } from './base/shared-base';
+import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared';
+import { SharedBase } from './base/shared-base';
 import type { Input, RunnableTask, Task } from './base/types';
 
 function validateOptions(options: ThrottleCommonOptions) {

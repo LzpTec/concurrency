@@ -1,32 +1,5 @@
-import { isAsyncIterator, isIterator } from './guards';
-import { every, filter, find, group, loop, map, mapSettled, some } from './shared';
+import { every, filter, find, group, loop, map, mapSettled, some, validatePredicate, validateTask } from './shared';
 import type { Input, RunnableTask, Task } from './types';
-
-export function validateAndProcessInput<A>(input: Input<A>) {
-    const isAsync = isAsyncIterator<A>(input);
-    const isSync = isIterator<A>(input);
-
-    if (!isAsync && !isSync)
-        throw new TypeError("Expected `input(" + typeof input + ")` to be an `Iterable` or `AsyncIterable`");
-
-    if (isAsync) {
-        return input[Symbol.asyncIterator]();
-    }
-
-    return input[Symbol.iterator]();
-}
-
-export function validateTask<A, B>(task: Task<A, B>) {
-    const fieldType = typeof task;
-    if (fieldType !== 'function')
-        throw new TypeError("Expected `task(" + fieldType + ")` to be a `function`");
-}
-
-export function validatePredicate<A>(predicate: Task<A, boolean>) {
-    const fieldType = typeof predicate;
-    if (fieldType !== 'function')
-        throw new TypeError("Expected `predicate(" + fieldType + ")` to be a `function`");
-}
 
 export abstract class SharedBase<Options> {
 

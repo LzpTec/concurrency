@@ -1,6 +1,6 @@
 import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './base/options';
-import { every, filter, find, group, interrupt, loop, map, mapSettled, some } from './base/shared';
-import { SharedBase, validateAndProcessInput, validatePredicate, validateTask } from './base/shared-base';
+import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared';
+import { SharedBase } from './base/shared-base';
 import type { Input, RunnableTask, Task } from './base/types';
 import { Semaphore } from './semaphore';
 
