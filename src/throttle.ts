@@ -2,7 +2,7 @@ import type { ThrottleCommonOptions, ThrottleTaskOptions, ThrottlePredicateOptio
 import { Queue } from './base/queue';
 import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared';
 import { SharedBase } from './base/shared-base';
-import type { Input, RunnableTask, Task } from './base/types';
+import type { Group, Input, RunnableTask, Task } from './base/types';
 
 function validateOptions(options: ThrottleCommonOptions) {
     if (!Number.isInteger(options.maxConcurrency)) {
@@ -23,9 +23,6 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
     #promise = Promise.resolve();
 
     static async #loop<A, B>(taskOptions: ThrottleTaskOptions<A, B>) {
-        // const t = new Throttle(taskOptions);
-        // return t[loop](taskOptions.input, taskOptions.task);
-
         validateOptions(taskOptions);
         const iterator = validateAndProcessInput(taskOptions.input);
         let done = false;
@@ -230,9 +227,9 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
      * 
      * @template A Input Type.
      * @param {ThrottleTaskOptions<A, string | symbol>} taskOptions Task Options.
-     * @returns {Promise<{ [key: string | symbol]: A[] }>}
+     * @returns {Promise<Group<A>>}
      */
-    static async group<A>(taskOptions: ThrottleTaskOptions<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
+    static async group<A>(taskOptions: ThrottleTaskOptions<A, string | symbol>): Promise<Group<A>> {
         validateTask(taskOptions.task);
 
         const { task, results } = group(taskOptions.task);
@@ -268,7 +265,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
 
             const ms = (this.#currentStart + interval) - now;
             if (ms > 1)
-                await new Promise<void>((resolve) => setTimeout(() => resolve(), ms));
+                await new Promise<void>((resolve) => setTimeout(resolve, ms));
         }
     }
 

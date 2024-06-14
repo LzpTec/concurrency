@@ -34,7 +34,7 @@ const globalBatchSize = 4;
 const instanceBatchSize = 4;
 
 const globalInterval = 1000;
-// const instanceInterval = 1000;
+const instanceInterval = 1000;
 
 const run = async () => {
     let idx = 0;
@@ -43,6 +43,10 @@ const run = async () => {
     });
     const concurrencyInstance = new Concurrency({
         maxConcurrency: instanceMaxConcurrency
+    });
+    const throttleInstance = new Throttle({
+        maxConcurrency: instanceMaxConcurrency,
+        interval: instanceInterval
     });
 
     console.info(`Concurrency Settings: `);
@@ -66,25 +70,35 @@ const run = async () => {
 
     console.log(`-- Map --`);
     const map = {
-        'RateLimit.map': await Throttle.map({
+        'Throttle.map': await Throttle.map({
             input: data,
             maxConcurrency: globalMaxConcurrency,
             interval: globalInterval,
             task: async (item) => new Promise((resolve) => {
-                console.log(`RateLimit.map ${idx++} - Item ${item}`);
+                console.log(`Throttle.map ${idx++} - Item ${item}`);
                 setTimeout(() => resolve(item * item + 1), 250);
             })
         }).then(() => idx = 0),
 
-        'RateLimit.map(async)': await Throttle.map({
+        'Throttle.map(async)': await Throttle.map({
             input: asyncData,
             maxConcurrency: globalMaxConcurrency,
             interval: globalInterval,
             task: async (item) => new Promise((resolve) => {
-                console.log(`RateLimit.map(async) ${idx++} - Item ${item}`);
+                console.log(`Throttle.map(async) ${idx++} - Item ${item}`);
                 setTimeout(() => resolve(item * item + 1), 250);
             })
         }).then(() => idx = 0),
+
+        'ThrottleInstance.map': await throttleInstance.map(data, async (item) => new Promise((resolve) => {
+            console.log(`ThrottleInstance.map ${idx++}`)
+            setTimeout(() => resolve(item * item + 1), 250 + (idx * 50));
+        })).then(() => idx = 0),
+
+        'ThrottleInstance.map(async)': await throttleInstance.map(data, async (item) => new Promise((resolve) => {
+            console.log(`ThrottleInstance.map(async) ${idx++}`)
+            setTimeout(() => resolve(item * item + 1), 250 + (idx * 50));
+        })).then(() => idx = 0),
 
         'Batch.map': await Batch.map({
             input: data,
