@@ -1,6 +1,6 @@
-// TODO
 import test from 'ava';
 import { Concurrency } from '../src/concurrency';
+import { Chain } from '../src/chain';
 
 const MAX_CONCURRENCY = 2;
 
@@ -53,6 +53,29 @@ test('AsyncIterable', async t => {
             calls.push(value);
         }
     });
+
+    t.deepEqual(calls, [1, 2, 3, 4]);
+    t.pass();
+});
+
+test('Chain', async t => {
+    function* test() {
+        yield 1;
+        yield 2;
+        yield 3;
+        yield 4;
+        return;
+    }
+
+    const concurrency = new Concurrency({
+        maxConcurrency: MAX_CONCURRENCY
+    });
+
+    const calls = await new Chain(test(), concurrency)
+        .map(async (value) => {
+            await wait(value * 10);
+            return value;
+        });
 
     t.deepEqual(calls, [1, 2, 3, 4]);
     t.pass();
