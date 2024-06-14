@@ -51,8 +51,7 @@ export abstract class SharedBase<Options> {
     async map<A, B>(input: Input<A>, task: Task<A, B>): Promise<B[]> {
         validateTask(task);
 
-        const results: B[] = new Array();
-        const fn = map(results, task);
+        const { task: fn, results } = map(task);
         await this[loop](input, fn);
         return results;
     }
@@ -70,8 +69,7 @@ export abstract class SharedBase<Options> {
     async mapSettled<A, B>(input: Input<A>, task: Task<A, B>): Promise<PromiseSettledResult<B>[]> {
         validateTask(task);
 
-        const results: PromiseSettledResult<B>[] = new Array();
-        const fn = mapSettled(results, task);
+        const { task: fn, results } = mapSettled(task);
         await this[loop](input, fn);
         return results;
     }
@@ -87,8 +85,7 @@ export abstract class SharedBase<Options> {
     async filter<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<A[]> {
         validatePredicate(predicate);
 
-        const results: A[] = new Array();
-        const fn = filter(results, predicate);
+        const { task: fn, results } = filter(predicate);
         await this[loop](input, fn);
         return results;
     }
@@ -104,10 +101,9 @@ export abstract class SharedBase<Options> {
     async some<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<boolean> {
         validatePredicate(predicate);
 
-        const result = { value: false };
-        const fn = some(result, predicate);
+        const { task: fn, results } = some(predicate);
         await this[loop](input, fn);
-        return result.value;
+        return results[0];
     }
 
     /**
@@ -121,10 +117,9 @@ export abstract class SharedBase<Options> {
     async find<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<A | undefined> {
         validatePredicate(predicate);
 
-        const result = { value: undefined };
-        const fn = find(result, predicate);
+        const { task: fn, results } = find(predicate);
         await this[loop](input, fn);
-        return result.value;
+        return results[0];
     }
 
     /**
@@ -138,10 +133,9 @@ export abstract class SharedBase<Options> {
     async every<A>(input: Input<A>, predicate: Task<A, boolean>): Promise<boolean> {
         validatePredicate(predicate);
 
-        const result = { value: true };
-        const fn = every(result, predicate);
+        const { task: fn, results } = every(predicate);
         await this[loop](input, fn);
-        return result.value;
+        return results[0];
     }
 
     /**
@@ -157,11 +151,9 @@ export abstract class SharedBase<Options> {
     async group<A>(input: Input<A>, task: Task<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
         validateTask(task);
 
-        const result = new Map<string | symbol, A[]>();
-        const fn = group(result, task);
+        const { task: fn, results } = group(task);
         await this[loop](input, fn);
-
-        return Object.fromEntries(result);
+        return Object.fromEntries(results[0]);
     }
 
 }

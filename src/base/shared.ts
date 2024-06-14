@@ -3,74 +3,109 @@ import type { Input, Task } from "./types";
 export const interrupt = Symbol(`Interrupt`);
 export const loop = Symbol(`loop`);
 
-export function map<A, B>(results: B[], task: Task<A, B>) {
-    return async function (item: A) {
-        results.push(await task(item))
+type SharedFnReturn<A, B> = {
+    task: (item: A) => Promise<void | symbol>;
+    results: B[];
+};
+
+type GroupKey = string | symbol;
+
+export function map<A, B>(task: Task<A, B>): SharedFnReturn<A, B> {
+    const results: B[] = new Array();
+    return {
+        task: async function (item: A) {
+            results.push(await task(item))
+        },
+        results
+    }
+}
+
+export function mapSettled<A, B>(task: Task<A, B>): SharedFnReturn<A, PromiseSettledResult<B>> {
+    const results: PromiseSettledResult<B>[] = new Array();
+    return {
+        task: async function (item: A) {
+            try {
+                results.push({
+                    status: 'fulfilled',
+                    value: await task(item)
+                });
+            } catch (err) {
+                results.push({
+                    status: 'rejected',
+                    reason: err
+                });
+            }
+        },
+        results
+    }
+}
+
+export function filter<A>(predicate: Task<A, boolean>): SharedFnReturn<A, A> {
+    const results: A[] = new Array();
+    return {
+        task: async function (item: A) {
+            if (await predicate(item))
+                results.push(item);
+        },
+        results
+    }
+}
+
+export function some<A>(predicate: Task<A, boolean>): SharedFnReturn<A, boolean> {
+    const results: boolean[] = [false];
+    return {
+        task: async function (item: A) {
+            if (await predicate(item)) {
+                results[0] = true;
+                return interrupt;
+            }
+        },
+        results
+    }
+}
+
+export function find<A>(predicate: Task<A, boolean>): SharedFnReturn<A, A> {
+    const results: A[] = [];
+    return {
+        task: async function (item: A) {
+            if (await predicate(item)) {
+                results[0] = item;
+                return interrupt;
+            }
+        },
+        results
+    }
+}
+
+export function every<A>(predicate: Task<A, boolean>): SharedFnReturn<A, boolean> {
+    const results: boolean[] = [true];
+    return {
+        task: async function (item: A) {
+            if (!(await predicate(item))) {
+                results[0] = false;
+                return interrupt;
+            }
+        },
+        results
     };
 }
 
-export function mapSettled<A, B>(results: PromiseSettledResult<B>[], task: Task<A, B>) {
-    return async function (item: A) {
-        try {
-            results.push({
-                status: 'fulfilled',
-                value: await task(item)
-            });
-        } catch (err) {
-            results.push({
-                status: 'rejected',
-                reason: err
-            });
-        }
+export function group<A>(task: Task<A, GroupKey>): SharedFnReturn<A, Map<GroupKey, A[]>> {
+    const result = new Map<GroupKey, A[]>();
+    return {
+        task: async function (item: A) {
+            const group = await task(item);
+
+            if (result.has(group))
+                result.get(group)!.push(item);
+            else
+                result.set(group, [item]);
+        },
+        results: [result]
     };
 }
 
-export function filter<A>(results: A[], predicate: Task<A, boolean>) {
-    return async function (item: A) {
-        if (await predicate(item))
-            results.push(item);
-    };
-}
-
-export function some<A>(result: { value: boolean; }, predicate: Task<A, boolean>) {
-    return async function (item: A) {
-        if (await predicate(item)) {
-            result.value = true;
-            return interrupt;
-        }
-    };
-}
-
-export function find<A>(result: { value: A | undefined; }, predicate: Task<A, boolean>) {
-    return async function (item: A) {
-        if (await predicate(item)) {
-            result.value = item;
-            return interrupt;
-        }
-    };
-}
-
-export function every<A>(result: { value: boolean; }, predicate: Task<A, boolean>) {
-    return async function (item: A) {
-        if (!(await predicate(item))) {
-            result.value = false;
-            return interrupt;
-        }
-    };
-}
-
-export function group<A>(result: Map<string | symbol, A[]>, task: Task<A, string | symbol>) {
-    return async function (item: A) {
-        const group = await task(item);
-
-        if (result.has(group))
-            result.get(group)!.push(item);
-        else
-            result.set(group, [item]);
-    };
-}
-
-export function isAsyncIterator<A>(input: any): input is AsyncIterable<A | Promise<A>>{
+export function isAsyncIterator<A>(input: any): input is AsyncIterable<A | Promise<A>> {
     return typeof input[Symbol.asyncIterator] === 'function';
 }
 
@@ -78,7 +113,7 @@ export function isIterator<A>(input: any): input is Iterable<A | Promise<A>> {
     return typeof input[Symbol.iterator] === 'function';
 }
 
-export function validateInput<A>(input: Input<A>){
+export function validateInput<A>(input: Input<A>) {
     const isAsync = isAsyncIterator<A>(input);
     const isSync = isIterator<A>(input);
 

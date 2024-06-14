@@ -93,8 +93,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
     static async map<A, B>(taskOptions: ThrottleTaskOptions<A, B>): Promise<B[]> {
         validateTask(taskOptions.task);
 
-        const results: B[] = new Array();
-        const task = map(results, taskOptions.task);
+        const { task, results } = map(taskOptions.task);
 
         await this
             .#loop({
@@ -119,8 +118,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
     static async mapSettled<A, B>(taskOptions: ThrottleTaskOptions<A, B>): Promise<PromiseSettledResult<B>[]> {
         validateTask(taskOptions.task);
 
-        const results: PromiseSettledResult<B>[] = new Array();
-        const task = mapSettled(results, taskOptions.task);
+        const { task, results } = mapSettled(taskOptions.task);
 
         await this
             .#loop({
@@ -143,8 +141,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
     static async filter<A>(taskOptions: ThrottlePredicateOptions<A>): Promise<A[]> {
         validatePredicate(taskOptions.predicate);
 
-        const results: A[] = new Array();
-        const task = filter(results, taskOptions.predicate);
+        const { task, results } = filter(taskOptions.predicate);
 
         await this
             .#loop({
@@ -167,8 +164,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
     static async some<A>(taskOptions: ThrottlePredicateOptions<A>): Promise<boolean> {
         validatePredicate(taskOptions.predicate);
 
-        const result = { value: false };
-        const task = some(result, taskOptions.predicate);
+        const { task, results } = some(taskOptions.predicate);
 
         await this
             .#loop({
@@ -176,7 +172,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
                 task
             });
 
-        return result.value;
+        return results[0];
     }
 
     /**
@@ -191,8 +187,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
     static async find<A>(taskOptions: ThrottlePredicateOptions<A>): Promise<A | undefined> {
         validatePredicate(taskOptions.predicate);
 
-        const result = { value: undefined };
-        const task = find(result, taskOptions.predicate);
+        const { task, results } = find(taskOptions.predicate);
 
         await this
             .#loop({
@@ -200,7 +195,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
                 task
             });
 
-        return result.value;
+        return results[0];
     }
 
     /**
@@ -215,8 +210,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
     static async every<A>(taskOptions: ThrottlePredicateOptions<A>): Promise<boolean> {
         validatePredicate(taskOptions.predicate);
 
-        const result = { value: true };
-        const task = every(result, taskOptions.predicate);
+        const { task, results } = every(taskOptions.predicate);
 
         await this
             .#loop({
@@ -224,7 +218,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
                 task
             });
 
-        return result.value;
+        return results[0];
     }
 
     /**
@@ -241,8 +235,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
     static async group<A>(taskOptions: ThrottleTaskOptions<A, string | symbol>): Promise<{ [key: string | symbol]: A[] }> {
         validateTask(taskOptions.task);
 
-        const result = new Map<string | symbol, A[]>();
-        const task = group(result, taskOptions.task);
+        const { task, results } = group(taskOptions.task);
 
         await this
             .#loop({
@@ -250,7 +243,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
                 task
             });
 
-        return Object.fromEntries(result);
+        return Object.fromEntries(results[0]);
     }
 
     /**
