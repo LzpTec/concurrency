@@ -36,6 +36,10 @@ const instanceBatchSize = 4;
 const globalInterval = 1000;
 const instanceInterval = 1000;
 
+const skipBatch = true;
+const skipConcurrency = true;
+const skipThrottle = false;
+
 const run = async () => {
     let idx = 0;
     const batchInstance = new Batch({
@@ -70,7 +74,7 @@ const run = async () => {
 
     console.log(`-- Map --`);
     const map = {
-        'Throttle.map': await Throttle.map({
+        'Throttle.map': skipThrottle ? undefined : await Throttle.map({
             input: data,
             maxConcurrency: globalMaxConcurrency,
             interval: globalInterval,
@@ -80,7 +84,7 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'Throttle.map(async)': await Throttle.map({
+        'Throttle.map(async)': skipThrottle ? undefined : await Throttle.map({
             input: asyncData,
             maxConcurrency: globalMaxConcurrency,
             interval: globalInterval,
@@ -90,17 +94,17 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'ThrottleInstance.map': await throttleInstance.map(data, async (item) => new Promise((resolve) => {
+        'ThrottleInstance.map': skipThrottle ? undefined : await throttleInstance.map(data, async (item) => new Promise((resolve) => {
             console.log(`ThrottleInstance.map ${idx++}`)
             setTimeout(() => resolve(item * item + 1), 250);
         })).then(() => idx = 0),
 
-        'ThrottleInstance.map(async)': await throttleInstance.map(data, async (item) => new Promise((resolve) => {
+        'ThrottleInstance.map(async)': skipThrottle ? undefined : await throttleInstance.map(data, async (item) => new Promise((resolve) => {
             console.log(`ThrottleInstance.map(async) ${idx++}`)
             setTimeout(() => resolve(item * item + 1), 250);
         })).then(() => idx = 0),
 
-        'Batch.map': await Batch.map({
+        'Batch.map': skipBatch ? undefined : await Batch.map({
             input: data,
             batchSize: globalBatchSize,
             task: async (item) => new Promise((resolve) => {
@@ -109,7 +113,7 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'Batch.map(async)': await Batch.map({
+        'Batch.map(async)': skipBatch ? undefined : await Batch.map({
             input: asyncData,
             batchSize: globalBatchSize,
             task: async (item) => new Promise((resolve) => {
@@ -118,17 +122,17 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'BatchInstance.map': await batchInstance.map(data, async (item) => new Promise((resolve) => {
+        'BatchInstance.map': skipBatch ? undefined : await batchInstance.map(data, async (item) => new Promise((resolve) => {
             console.log(`BatchInstance.map ${idx++} - Item ${item}`)
             setTimeout(() => resolve(item * item + 1), 250 + (idx * 50));
         })).then(() => idx = 0),
 
-        'BatchInstance.map(async)': await batchInstance.map(asyncData, async (item) => new Promise((resolve) => {
+        'BatchInstance.map(async)': skipBatch ? undefined : await batchInstance.map(asyncData, async (item) => new Promise((resolve) => {
             console.log(`BatchInstance.map(async) ${idx++} - Item ${item}`)
             setTimeout(() => resolve(item * item + 1), 250 + (idx * 50));
         })).then(() => idx = 0),
 
-        'Concurrency.map': await Concurrency.map({
+        'Concurrency.map': skipConcurrency ? undefined : await Concurrency.map({
             input: data,
             maxConcurrency: globalMaxConcurrency,
             task: async (item) => new Promise((resolve) => {
@@ -137,7 +141,7 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'Concurrency.map(async)': await Concurrency.map({
+        'Concurrency.map(async)': skipConcurrency ? undefined : await Concurrency.map({
             input: data,
             maxConcurrency: globalMaxConcurrency,
             task: async (item) => new Promise((resolve) => {
@@ -146,12 +150,12 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'ConcurrencyInstance.map': await concurrencyInstance.map(data, async (item) => new Promise((resolve) => {
+        'ConcurrencyInstance.map': skipConcurrency ? undefined : await concurrencyInstance.map(data, async (item) => new Promise((resolve) => {
             console.log(`ConcurrencyInstance.map ${idx++}`)
             setTimeout(() => resolve(item * item + 1), 250 + (idx * 50));
         })).then(() => idx = 0),
 
-        'ConcurrencyInstance.map(async)': await concurrencyInstance.map(data, async (item) => new Promise((resolve) => {
+        'ConcurrencyInstance.map(async)': skipConcurrency ? undefined : await concurrencyInstance.map(data, async (item) => new Promise((resolve) => {
             console.log(`ConcurrencyInstance.map(async) ${idx++}`)
             setTimeout(() => resolve(item * item + 1), 250 + (idx * 50));
         })).then(() => idx = 0),
@@ -165,7 +169,7 @@ const run = async () => {
 
     console.log(`-- Group --`);
     const group = {
-        'Batch.group': await Batch.group({
+        'Batch.group': skipBatch ? undefined : await Batch.group({
             input: data,
             batchSize: globalBatchSize,
             task: async (item) => new Promise((resolve) => {
@@ -174,12 +178,12 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'BatchInstance.group': await batchInstance.group(data, async (item) => new Promise((resolve) => {
+        'BatchInstance.group': skipBatch ? undefined : await batchInstance.group(data, async (item) => new Promise((resolve) => {
             console.log(`BatchInstance.group ${idx++} - Item ${item}`)
             setTimeout(() => resolve(item.toString()), 250 + (idx * 50));
         })).then(() => idx = 0),
 
-        'Concurrency.group': await Concurrency.group({
+        'Concurrency.group': skipConcurrency ? undefined : await Concurrency.group({
             input: data,
             maxConcurrency: globalMaxConcurrency,
             task: async (item) => new Promise((resolve) => {
@@ -188,7 +192,7 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'ConcurrencyInstance.group': await concurrencyInstance.group(data, async (item) => new Promise((resolve) => {
+        'ConcurrencyInstance.group': skipConcurrency ? undefined : await concurrencyInstance.group(data, async (item) => new Promise((resolve) => {
             console.log(`ConcurrencyInstance.group ${idx++}`)
             setTimeout(() => resolve(item.toString()), 250 + (idx * 50));
         })).then(() => idx = 0),
@@ -200,7 +204,7 @@ const run = async () => {
 
     console.log(`-- Filter --`);
     const filter = {
-        'Batch.filter': await Batch.filter({
+        'Batch.filter': skipBatch ? undefined : await Batch.filter({
             input: data,
             batchSize: globalBatchSize,
             predicate: async (item) => new Promise((resolve) => {
@@ -209,12 +213,12 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'BatchInstance.filter': await batchInstance.filter(data, async (item) => new Promise((resolve) => {
+        'BatchInstance.filter': skipBatch ? undefined : await batchInstance.filter(data, async (item) => new Promise((resolve) => {
             console.log(`BatchInstance.filter ${idx++} - Item ${item}`)
             setTimeout(() => resolve(item % 2 === 0), 250 + (idx * 50));
         })).then(() => idx = 0),
 
-        'Concurrency.filter': await Concurrency.filter({
+        'Concurrency.filter': skipConcurrency ? undefined : await Concurrency.filter({
             input: data,
             maxConcurrency: globalMaxConcurrency,
             predicate: async (item) => new Promise((resolve) => {
@@ -223,7 +227,7 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'ConcurrencyInstance.filter': await concurrencyInstance.filter(data, async (item) => new Promise((resolve) => {
+        'ConcurrencyInstance.filter': skipConcurrency ? undefined : await concurrencyInstance.filter(data, async (item) => new Promise((resolve) => {
             console.log(`ConcurrencyInstance.filter ${idx++}`)
             setTimeout(() => resolve(item % 2 === 0), 250 + (idx * 50));
         })).then(() => idx = 0),
@@ -237,7 +241,7 @@ const run = async () => {
 
     console.log(`-- MapSettled --`);
     const mapSettled = {
-        'Batch.mapSettled': await Batch.mapSettled({
+        'Batch.mapSettled': skipBatch ? undefined : await Batch.mapSettled({
             input: data,
             batchSize: globalBatchSize,
             task: async (item) => new Promise((resolve) => {
@@ -246,7 +250,7 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'Concurrency.mapSettled': await Concurrency.mapSettled({
+        'Concurrency.mapSettled': skipConcurrency ? undefined : await Concurrency.mapSettled({
             input: data,
             maxConcurrency: globalMaxConcurrency,
             task: async (item) => new Promise((resolve) => {
@@ -266,7 +270,7 @@ const run = async () => {
 
     console.log(`-- ForEach --`);
     const forEach = {
-        'Batch.forEach': await Batch.forEach({
+        'Batch.forEach': skipBatch ? undefined : await Batch.forEach({
             input: data,
             batchSize: globalBatchSize,
             task: async (item) => new Promise<void>((resolve) => {
@@ -275,7 +279,7 @@ const run = async () => {
             })
         }).then(() => idx = 0),
 
-        'Concurrency.forEach': await Concurrency.forEach({
+        'Concurrency.forEach': skipConcurrency ? undefined : await Concurrency.forEach({
             input: data,
             maxConcurrency: globalMaxConcurrency,
             task: async (item) => new Promise<void>((resolve) => {
