@@ -25,6 +25,11 @@ export class Queue<T> {
         return first;
     }
 
+    clear() {
+        this.#elements = [];
+        this.#offset = 0;
+    }
+
     get length() {
         return this.#elements.length - this.#offset;
     }
