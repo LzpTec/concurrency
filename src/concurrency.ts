@@ -257,11 +257,17 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
     }
 
     override run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
+        const { concurrencyInterval } = this.#options;
+
         const job = new Promise<B>((resolve, reject) => {
             const callback = () => this.#promise
                 .then(() => task(...args))
                 .then(resolve)
-                .catch(reject);
+                .catch(reject)
+                .then(() => {
+                    if (typeof concurrencyInterval === 'number')
+                        return new Promise<void>((resolve) => setTimeout(resolve, concurrencyInterval))
+                });
 
             this.#semaphore.run(callback);
         });
