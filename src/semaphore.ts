@@ -4,18 +4,18 @@ type SemaphoreOptions = {
     maxConcurrency: number;
 };
 
-type SemaphoreLock = {
+type SemaphoreItem = {
+    promise: Promise<void>;
     release: () => void;
 };
 
-type SemaphoreItem = {
-    task: Promise<void>;
+export type SemaphoreLock = {
     release: () => void;
 };
 
 export class Semaphore {
     #currentQueue: Queue<SemaphoreItem> = new Queue();
-    #running = 0;
+    #acquired = 0;
     #maxConcurrency = 1;
     #promise = Promise.resolve();
 
@@ -37,11 +37,11 @@ export class Semaphore {
 
     async acquire(): Promise<SemaphoreLock> {
         let release: () => void;
-        const task = new Promise<void>((res) => { release = res; });
+        const promise = new Promise<void>((res) => { release = res; });
 
         return new Promise<SemaphoreLock>((resolve) => {
             this.#currentQueue.enqueue({
-                task,
+                promise,
                 release: () => resolve({ release })
             });
             this.#tryNext();
@@ -49,24 +49,26 @@ export class Semaphore {
     }
 
     #tryNext() {
-        if (!this.#currentQueue.length || this.#running >= this.#maxConcurrency)
+        if (!this.#currentQueue.length || this.#acquired >= this.#maxConcurrency)
             return;
 
-        const { release, task } = this.#currentQueue.dequeue()!;
-        this.#running++;
+        const { release, promise } = this.#currentQueue.dequeue()!;
+        this.#acquired++;
         this.#promise
             .then(release)
-            .then(() => task)
+            .then(() => promise)
             .finally(() => {
-                this.#running--;
+                this.#acquired--;
                 this.#tryNext();
             });
     }
 
+    get acquired(): number {
+        return this.#acquired;
+    }
+
     get options(): SemaphoreOptions {
-        return {
-            maxConcurrency: this.#maxConcurrency
-        };
+        return { maxConcurrency: this.#maxConcurrency };
     }
 
     set options(options: SemaphoreOptions) {
