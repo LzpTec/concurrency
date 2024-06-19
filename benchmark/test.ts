@@ -92,12 +92,12 @@ const run = async () => {
 
         'ThrottleInstance.map': await throttleInstance.map(data, async (item) => new Promise((resolve) => {
             console.log(`ThrottleInstance.map ${idx++}`)
-            setTimeout(() => resolve(item * item + 1), 250 + (idx * 50));
+            setTimeout(() => resolve(item * item + 1), 250);
         })).then(() => idx = 0),
 
         'ThrottleInstance.map(async)': await throttleInstance.map(data, async (item) => new Promise((resolve) => {
             console.log(`ThrottleInstance.map(async) ${idx++}`)
-            setTimeout(() => resolve(item * item + 1), 250 + (idx * 50));
+            setTimeout(() => resolve(item * item + 1), 250);
         })).then(() => idx = 0),
 
         'Batch.map': await Batch.map({
