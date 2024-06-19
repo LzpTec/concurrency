@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.3.2](https://github.com/LzpTec/concurrency/compare/v3.3.1...v3.3.2) (2024-06-19)
+
+
+### Features
+
+* add aquired property to semaphore. ([4f91588](https://github.com/LzpTec/concurrency/commit/4f91588b0b1ee23d50dd3f9bab459b4cdea6ddbf))
+
+
+### Bug Fixes
+
+* Throttle instance not working correctly. ([26706c1](https://github.com/LzpTec/concurrency/commit/26706c16b4a655d0a44ee664e0b0fe7a9def0949))
+
 ## [3.3.1](https://github.com/LzpTec/concurrency/compare/v3.3.0...v3.3.1) (2024-06-19)
 
 
