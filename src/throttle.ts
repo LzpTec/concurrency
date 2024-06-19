@@ -1,9 +1,8 @@
 import type { ThrottleCommonOptions, ThrottleTaskOptions, ThrottlePredicateOptions } from './base/options';
-import { Queue } from './base/queue';
 import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared';
 import { SharedBase } from './base/shared-base';
-import type { Group, Input, RunnableTask, Task } from './base/types';
-
+import { Group, Input, RunnableTask, Task } from './base/types';
+import { Semaphore, SemaphoreLock } from './semaphore';
 function validateOptions(options: ThrottleCommonOptions) {
     if (!Number.isInteger(options.maxConcurrency)) {
         throw new Error('Parameter `maxConcurrency` must be a integer!');
@@ -17,10 +16,11 @@ function validateOptions(options: ThrottleCommonOptions) {
 export class Throttle extends SharedBase<ThrottleCommonOptions> {
 
     #options: ThrottleCommonOptions;
-    #queue: Queue<() => Promise<void>> = new Queue();
-    #currentStart = 0;
-    #currentRunning = 0;
+    #semaphore: Semaphore = new Semaphore();
     #promise = Promise.resolve();
+    #locks: SemaphoreLock[] = [];
+    #currentStart: number = 0;
+    #timer: NodeJS.Timeout | undefined;
 
     static async #loop<A, B>(taskOptions: ThrottleTaskOptions<A, B>) {
         validateOptions(taskOptions);
@@ -252,38 +252,29 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
         this.options = options;
     }
 
-    async #run() {
-        let job: Function | undefined;
-        const { interval } = this.#options;
-        while (job = this.#queue.dequeue()) {
-            job();
-
-            const now = performance.now();
-            if ((now - this.#currentStart) >= interval) {
-                this.#currentStart = now;
-            }
-
-            const ms = (this.#currentStart + interval) - now;
-            if (ms > 1)
-                await new Promise<void>((resolve) => setTimeout(resolve, ms));
-        }
+    #clearLocks() {
+        this.#locks.forEach(x => x.release());
+        this.#locks = [];
+        this.#timer = undefined;
     }
 
     override async run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
-        const job = new Promise<B>((resolve, reject) => {
-            const callback = () => this.#promise
-                .then(() => task(...args))
-                .then(resolve)
-                .catch(reject);
+        const { interval } = this.#options;
 
-            this.#queue.enqueue(callback);
+        const lock = await this.#semaphore.acquire();
+        this.#locks.push(lock);
 
-            if (this.#currentRunning >= this.#options.maxConcurrency) return;
+        const now = performance.now();
 
-            this.#currentRunning++;
-            this.#promise.then(() => this.#run().then(() => this.#currentRunning--));
-        });
-        return job;
+        if ((now - this.#currentStart) >= interval)
+            this.#currentStart = now;
+        
+        if (!this.#timer) {
+            this.#timer = setTimeout(this.#clearLocks.bind(this), interval);
+        }
+
+        return this.#promise
+            .then(() => task(...args));
     }
 
     override async[loop]<A, B>(input: Input<A>, task: Task<A, B>): Promise<void> {
@@ -292,31 +283,18 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
         let done = false;
         const { maxConcurrency } = this.#options;
 
-        const catchAndAbort = (err: any) => {
-            done = true;
-            throw err;
-        };
-
         await new Promise<void>((resolve, reject) => {
             for (let i = 0; i < maxConcurrency; i++) {
-                this.run(async () => {
-                    while (true) {
-                        const res = await iterator.next();
-                        if (res.done || done)
-                            break;
-
-                        await (async () => {
-                            const result = await task(await res.value);
-                            if (result === interrupt) {
-                                done = true;
-                                iterator.return?.();
-                            }
-                        })();
-                    }
-                })
+                Promise
+                    .resolve(iterator.next())
+                    .then(async res => {
+                        while (!done && !res.done) {
+                            await this.run(task, await res.value);
+                            res = await iterator.next();
+                        }
+                    })
                     .then(() => (--i === 0) ? resolve() : undefined)
-                    .catch(catchAndAbort)
-                    .catch(reject);
+                    .catch(() => { done = true; reject(); });
             }
         });
     }
@@ -324,6 +302,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
     override set options(options: ThrottleCommonOptions) {
         validateOptions(options);
         this.#options = { ...this.#options, ...options };
+        this.#semaphore.options = this.#options;
     }
 
     override get options() {
