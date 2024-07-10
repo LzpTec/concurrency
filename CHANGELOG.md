@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.3.4](https://github.com/LzpTec/concurrency/compare/v3.3.3...v3.3.4) (2024-07-10)
+
+
+### Bug Fixes
+
+* Complete before processing when input is less than maxConcurrency/batchSize. ([f47ed19](https://github.com/LzpTec/concurrency/commit/f47ed19141e8886906aa0cad83cfc470da0d4f31))
+
+## [3.3.3](https://github.com/LzpTec/concurrency/compare/v3.3.2...v3.3.3) (2024-07-10)
+
+
+### Bug Fixes
+
+* Iterator concurrency. ([76a4aa9](https://github.com/LzpTec/concurrency/commit/76a4aa989707319fc3ddd67856fadaed1986426c))
+
+
+### Dependencies
+
+* Update deps. ([9250229](https://github.com/LzpTec/concurrency/commit/9250229f191835dc44cf461fca0055347b68273d))
+
 ## [3.3.2](https://github.com/LzpTec/concurrency/compare/v3.3.1...v3.3.2) (2024-06-19)
 
 

@@ -35,6 +35,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
 
         while (!done) {
             await new Promise<void>((resolve, reject) => {
+                let count = batchSize;
                 for (let i = 0; i < batchSize; i++) {
                     (async () => {
                         const data = await iterator.next();
@@ -47,7 +48,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
                             iterator.return?.();
                         }
                     })()
-                        .then(() => (--i === 0) ? resolve() : undefined)
+                        .then(() => (--count === 0) ? resolve() : undefined)
                         .catch(reject);
                 }
             });
@@ -251,6 +252,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
 
         while (this.#queue.length) {
             await new Promise<void>((resolve, reject) => {
+                let count = batchSize;
                 for (let i = 0; i < batchSize; i++) {
                     this.#promise.then(async () => {
                         try {
@@ -258,7 +260,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
                             if (!job) return;
 
                             await job();
-                            if (--i === 0) resolve()
+                            if (--count === 0) resolve();
                         } catch (err) {
                             reject(err);
                         }
@@ -294,6 +296,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
         const { batchSize } = this.#options;
 
         await new Promise<void>((resolve, reject) => {
+            let count = batchSize;
             for (let i = 0; i < batchSize; i++) {
                 Promise
                     .resolve(iterator.next())
@@ -303,7 +306,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
                             res = await iterator.next();
                         }
                     })
-                    .then(() => (--i === 0) ? resolve() : undefined)
+                    .then(() => (--count === 0) ? resolve() : undefined)
                     .catch(() => { done = true; reject(); });
             }
         });
