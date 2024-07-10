@@ -40,8 +40,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
                     while (!done) {
                         const data = await iterator.next();
                         if (done || data.done) {
-                            done = true;
-                            return;
+                            break;
                         }
 
                         const result = await task(await data.value);
