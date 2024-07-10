@@ -71,7 +71,6 @@ test('mapSettled', async t => {
         }
     });
 
-    console.log(calls);
     const result = calls.filter(x => x.status === 'fulfilled').map(x => x.value);
     t.deepEqual(result, [1, 2, 3, 4]);
     t.pass();
