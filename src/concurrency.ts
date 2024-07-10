@@ -32,14 +32,19 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         const iterator = validateAndProcessInput(input);
         let done = false;
 
+        const catchAndAbort = (err: unknown) => {
+            done = true;
+            throw err;
+        };
+
         await new Promise<void>((resolve, reject) => {
+            let count = maxConcurrency;
             for (let i = 0; i < maxConcurrency; i++) {
                 (async () => {
                     while (!done) {
                         const data = await iterator.next();
-                        if (done || data.done) {
+                        if (data.done || done)
                             break;
-                        }
 
                         const result = await task(await data.value);
                         if (result === interrupt) {
@@ -53,7 +58,8 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
                         }
                     }
                 })()
-                    .then(() => (--i === 0) ? resolve() : undefined)
+                    .then(() => (--count === 0) ? resolve() : undefined)
+                    .catch(catchAndAbort)
                     .catch(reject);
             }
         });
@@ -279,12 +285,13 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
         let done = false;
         const { maxConcurrency } = this.#options;
 
-        const catchAndAbort = (err: any) => {
+        const catchAndAbort = (err: unknown) => {
             done = true;
             throw err;
         };
 
         await new Promise<void>((resolve, reject) => {
+            let count = maxConcurrency;
             for (let i = 0; i < maxConcurrency; i++) {
                 this.run(async () => {
                     while (true) {
@@ -301,7 +308,7 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
                         })();
                     }
                 })
-                    .then(() => (--i === 0) ? resolve() : undefined)
+                    .then(() => (--count === 0) ? resolve() : undefined)
                     .catch(catchAndAbort)
                     .catch(reject);
             }

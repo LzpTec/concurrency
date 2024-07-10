@@ -31,17 +31,22 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
         const iterator = validateAndProcessInput(taskOptions.input);
         let done = false;
 
+        const catchAndAbort = (err: unknown) => {
+            done = true;
+            throw err;
+        };
+
         let currentStart = performance.now();
         const { interval, maxConcurrency, task } = taskOptions;
 
         await new Promise<void>((resolve, reject) => {
+            let count = maxConcurrency;
             for (let i = 0; i < maxConcurrency; i++) {
                 (async () => {
                     while (!done) {
                         const data = await iterator.next();
-                        if (done || data.done) {
+                        if (data.done || done)
                             break;
-                        }
 
                         const result = await task(await data.value);
                         if (result === interrupt) {
@@ -60,7 +65,8 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
                             await new Promise<void>((resolve) => setTimeout(() => resolve(), ms));
                     }
                 })()
-                    .then(() => (--i === 0) ? resolve() : undefined)
+                    .then(() => (--count === 0) ? resolve() : undefined)
+                    .catch(catchAndAbort)
                     .catch(reject);
             }
         });
@@ -278,7 +284,7 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
 
         if ((now - this.#currentStart) >= interval)
             this.#currentStart = now;
-        
+
         if (!this.#timer) {
             this.#timer = setTimeout(this.#clearLocks.bind(this), interval);
         }
@@ -293,7 +299,13 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
         let done = false;
         const { maxConcurrency } = this.#options;
 
+        const catchAndAbort = (err: unknown) => {
+            done = true;
+            throw err;
+        };
+
         await new Promise<void>((resolve, reject) => {
+            let count = maxConcurrency;
             for (let i = 0; i < maxConcurrency; i++) {
                 Promise
                     .resolve(iterator.next())
@@ -303,8 +315,9 @@ export class Throttle extends SharedBase<ThrottleCommonOptions> {
                             res = await iterator.next();
                         }
                     })
-                    .then(() => (--i === 0) ? resolve() : undefined)
-                    .catch(() => { done = true; reject(); });
+                    .then(() => (--count === 0) ? resolve() : undefined)
+                    .catch(catchAndAbort)
+                    .catch(reject);
             }
         });
     }
