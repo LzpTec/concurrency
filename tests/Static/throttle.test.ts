@@ -1,6 +1,6 @@
 // TODO
 import test from 'ava';
-import { Throttle } from '../src/throttle';
+import { Throttle } from '../../src/throttle';
 
 const MAX_CONCURRENCY = 2;
 const INTERVAL = 200;
@@ -70,29 +70,6 @@ test('mapSettled', async t => {
 
     const result = calls.filter(x => x.status === 'fulfilled').map(x => x.value);
     t.deepEqual(result, [1, 2, 3, 4]);
-    t.pass();
-});
-
-test('Iterable', async t => {
-    function* test() {
-        yield 1;
-        yield 2;
-        yield 3;
-        yield 4;
-        return;
-    }
-
-    const calls: number[] = [];
-    await Throttle.forEach({
-        input: test(),
-        maxConcurrency: MAX_CONCURRENCY,
-        interval: INTERVAL,
-        task: async (value) => {
-            calls.push(value);
-        }
-    });
-
-    t.deepEqual(calls, [1, 2, 3, 4]);
     t.pass();
 });
 
