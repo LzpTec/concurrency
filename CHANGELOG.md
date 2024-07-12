@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.3.5](https://github.com/LzpTec/concurrency/compare/v3.3.4...v3.3.5) (2024-07-12)
+
+
+### Bug Fixes
+
+* Batch run not working. ([99597a7](https://github.com/LzpTec/concurrency/commit/99597a7ec5853389237402778d237be402fa03d1))
+
 ## [3.3.4](https://github.com/LzpTec/concurrency/compare/v3.3.3...v3.3.4) (2024-07-10)
 
 
