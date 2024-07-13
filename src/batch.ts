@@ -248,6 +248,9 @@ export class Batch extends SharedBase<BatchCommonOptions> {
     }
 
     async #run() {
+        if (this.#isRunning) return;
+        this.#isRunning = true;
+
         const { batchSize, batchInterval } = this.#options;
 
         while (this.#queue.length) {
@@ -257,7 +260,10 @@ export class Batch extends SharedBase<BatchCommonOptions> {
                     this.#promise.then(async () => {
                         try {
                             const job = this.#queue.dequeue();
-                            if (!job) return;
+                            if (!job){
+                                if (--count === 0) resolve();
+                                return;
+                            }
 
                             await job();
                             if (--count === 0) resolve();
@@ -272,6 +278,8 @@ export class Batch extends SharedBase<BatchCommonOptions> {
                 await new Promise<void>((resolve) => setTimeout(resolve, batchInterval));
             }
         }
+
+        this.#isRunning = false;
     }
 
     override run<A, B>(task: RunnableTask<A, B>, ...args: A[]): Promise<B> {
@@ -282,9 +290,7 @@ export class Batch extends SharedBase<BatchCommonOptions> {
                 .catch(reject);
 
             this.#queue.enqueue(callback);
-            if (this.#isRunning) return;
-            this.#isRunning = true;
-            this.#promise.then(() => this.#run().then(() => this.#isRunning = false));
+            this.#promise.then(() => this.#run());
         });
         return job;
     }

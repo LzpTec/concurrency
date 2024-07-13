@@ -1,6 +1,6 @@
 import test from 'ava';
-import { Concurrency } from '../src/concurrency';
-import { Chain } from '../src/chain';
+import { Chain } from '../../src/chain';
+import { Concurrency } from '../../src/concurrency';
 
 const MAX_CONCURRENCY = 2;
 
@@ -78,13 +78,13 @@ test('mapSettled', async t => {
 
 test('AsyncIterable', async t => {
     async function* test() {
-        await wait(50);
+        await wait(25);
         yield 1;
-        await wait(50);
+        await wait(25);
         yield 2;
-        await wait(50);
+        await wait(25);
         yield 3;
-        await wait(50);
+        await wait(25);
         yield 4;
         return;
     }
