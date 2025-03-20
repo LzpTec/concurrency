@@ -1,6 +1,7 @@
 // TODO
 import test from 'ava';
 import { Batch } from '../../src/batch';
+import { Chain } from '../../src/chain';
 
 const BATCH_SIZE = 2;
 
@@ -102,6 +103,30 @@ test('AsyncIterable', async t => {
         await wait(value * 10);
         calls.push(value);
     });
+
+    t.deepEqual(calls, [1, 2, 3, 4]);
+    t.pass();
+});
+
+test('Chain', async t => {
+    function* test() {
+        yield 1;
+        yield 2;
+        yield 3;
+        yield 4;
+        return;
+    }
+
+    const batch = new Batch({
+        batchSize: BATCH_SIZE
+    });
+
+    const calls = await new Chain(test(), batch)
+        .map(async (value) => {
+            await wait(value * 10);
+            return value;
+        })
+        .get();
 
     t.deepEqual(calls, [1, 2, 3, 4]);
     t.pass();

@@ -7,12 +7,13 @@ type Operation<A, B extends Input<A>, C> = (input: B, executor: SharedBase<any>)
 export type InputType<TValue> = TValue extends Input<infer TResult> ? TResult : never;
 
 type Overwrite<T, U> = Omit<T, keyof U> & U;
+
 export type SingleValueChain<TInput extends Input<any>, TValue = InputType<TInput>> = Overwrite<
     Chain<TInput, TValue>,
-    PromiseLike<TValue>
+    { get(): Promise<TValue> }
 >
 
-export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> implements PromiseLike<TValue[]> {
+export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> {
     #input: TInput;
     #operations: Operation<any, any, unknown>[] = [];
     #single = false;
@@ -123,10 +124,7 @@ export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> implem
         });
     }
 
-    async then<TResult1 = TValue[], TResult2 = never>(
-        onfulfilled?: ((value: TValue[]) => TResult1 | PromiseLike<TResult1>) | null,
-        onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
-    ): Promise<TResult1 | TResult2> {
+    async get<TResult = TValue[]>(): Promise<TResult> {
         const res = await (async () => {
             let input: any = this.#input;
             for (const operation of this.#operations) {
@@ -135,12 +133,8 @@ export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> implem
 
             return this.#single ? input[0] : input;
         })();
-        let promise = Promise.resolve(res);
-        if (typeof onfulfilled === 'function')
-            promise = promise.then(onfulfilled);
-        if (typeof onrejected === 'function')
-            promise = promise.catch(onrejected);
-        return await promise;
+
+        return Promise.resolve(res);
     }
 
 }
