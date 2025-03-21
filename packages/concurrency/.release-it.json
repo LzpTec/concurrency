@@ -1,0 +1,55 @@
+{
+  "$schema": "https://unpkg.com/release-it@18/schema/release-it.json",
+  "git": false,
+  "plugins": {
+      "release-it-pnpm": {},
+      "@release-it/conventional-changelog": {
+          "infile": false,
+          "preset": {
+              "name": "conventionalcommits",
+              "types": [
+                  {
+                      "type": "feat",
+                      "section": "Features"
+                  },
+                  {
+                      "type": "fix",
+                      "section": "Bug Fixes"
+                  },
+                  {
+                      "type": "perf",
+                      "section": "Performance"
+                  },
+                  {
+                      "type": "refactor",
+                      "section": "Refactor"
+                  },
+                  {
+                      "type": "docs",
+                      "section": "Docs"
+                  },
+                  {
+                      "type": "misc",
+                      "section": "Misc"
+                  },
+                  {
+                      "type": "deps",
+                      "section": "Dependencies"
+                  },
+                  {
+                      "type": "chore",
+                      "hidden": true
+                  },
+                  {
+                      "type": "style",
+                      "hidden": true
+                  },
+                  {
+                      "type": "test",
+                      "hidden": true
+                  }
+              ]
+          }
+      }
+  }
+}

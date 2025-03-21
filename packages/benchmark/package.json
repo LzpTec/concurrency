@@ -4,15 +4,16 @@
   "description": "",
   "main": "index.js",
   "type": "module",
+  "private": true,
   "scripts": {
     "start": "node --import @swc-node/register/esm-register benchmark.ts",
-    "test": "node --import @swc-node/register/esm-register test.ts"
+    "test:stability": "node --import @swc-node/register/esm-register test.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@lzptec/concurrency": "../",
+    "@lzptec/concurrency": "workspace:*",
     "@thi.ng/bench": "^3.5.6",
     "@types/node": "^20.14.2",
     "colors": "^1.4.0",

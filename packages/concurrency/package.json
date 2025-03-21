@@ -1,0 +1,77 @@
+{
+  "name": "@lzptec/concurrency",
+  "version": "3.3.5",
+  "description": "A Lightweight concurrency manager",
+  "author": "André Posso <admin@lzptec.com>",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LzpTec/concurrency.git"
+  },
+  "keywords": [
+    "Concurrency",
+    "Batch",
+    "typescript",
+    "javascript",
+    "async",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "test": "ava",
+    "build": "tsup",
+    "prepublish": "pnpm run build",
+    "release": "commit-and-tag-version",
+    "release:major": "commit-and-tag-version --release-as major",
+    "release:minor": "commit-and-tag-version --release-as minor",
+    "release:patch": "commit-and-tag-version --release-as patch",
+    "release:alpha": "commit-and-tag-version --prerelease alpha",
+    "release:rc": "commit-and-tag-version --prerelease rc"
+  },
+  "ava": {
+    "timeout": "30s",
+    "extensions": {
+      "ts": "module"
+    },
+    "nodeArguments": [
+      "--enable-source-maps",
+      "--import=@swc-node/register/esm-register"
+    ]
+  },
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js"
+    },
+    "./batch": {
+      "types": "./dist/batch.d.ts",
+      "require": "./dist/batch.cjs",
+      "import": "./dist/batch.js"
+    },
+    "./concurrency": {
+      "types": "./dist/concurrency.d.ts",
+      "require": "./dist/concurrency.cjs",
+      "import": "./dist/concurrency.js"
+    },
+    "./throttle": {
+      "types": "./dist/throttle.d.ts",
+      "require": "./dist/throttle.cjs",
+      "import": "./dist/throttle.js"
+    },
+    "./semaphore": {
+      "types": "./dist/semaphore.d.ts",
+      "require": "./dist/semaphore.cjs",
+      "import": "./dist/semaphore.js"
+    },
+    "./lock": {
+      "types": "./dist/lock.d.ts",
+      "require": "./dist/lock.cjs",
+      "import": "./dist/lock.js"
+    }
+  }
+}

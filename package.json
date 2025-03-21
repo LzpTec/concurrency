@@ -1,89 +1,34 @@
 {
-  "name": "@lzptec/concurrency",
+  "name": "root",
   "version": "3.3.5",
-  "description": "A Lightweight concurrency manager",
-  "author": "André Posso <admin@lzptec.com>",
-  "license": "MIT",
   "type": "module",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/LzpTec/concurrency.git"
-  },
-  "keywords": [
-    "Concurrency",
-    "Batch",
-    "typescript",
-    "javascript",
-    "async",
-    "backend",
-    "frontend"
+  "private": true,
+  "workspaces": [
+    "./workspaces/benchmark",
+    "./workspaces/concurrency"
   ],
   "scripts": {
-    "test": "ava",
-    "build": "tsup",
+    "test": "pnpm run -r test",
+    "build": "pnpm run -r build",
     "prepublish": "pnpm run build",
-    "release": "commit-and-tag-version",
-    "release:major": "commit-and-tag-version --release-as major",
-    "release:minor": "commit-and-tag-version --release-as minor",
-    "release:patch": "commit-and-tag-version --release-as patch",
-    "release:alpha": "commit-and-tag-version --prerelease alpha",
-    "release:rc": "commit-and-tag-version --prerelease rc"
+    "release": "pnpm run -r release",
+    "release:major": "pnpm run -r release:major",
+    "release:minor": "pnpm run -r release:minor",
+    "release:patch": "pnpm run -r release:patch",
+    "release:rc": "pnpm run -r release:rc"
   },
   "devDependencies": {
     "@ava/typescript": "^5.0.0",
+    "@release-it/conventional-changelog": "^10.0.0",
     "@swc-node/register": "^1.10.10",
     "@swc/core": "^1.11.11",
     "@types/node": "^20.14.10",
     "ava": "6.2.0",
-    "commit-and-tag-version": "12.5.0",
+    "release-it": "^18.1.2",
+    "release-it-pnpm": "^4.6.4",
     "ts-node": "^10.9.2",
     "tslib": "2.8.1",
     "tsup": "8.4.0",
     "typescript": "5.8.2"
-  },
-  "ava": {
-    "timeout": "30s",
-    "extensions": {
-      "ts": "module"
-    },
-    "nodeArguments": [
-      "--enable-source-maps",
-      "--import=@swc-node/register/esm-register"
-    ]
-  },
-  "types": "./dist/index.d.ts",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.js"
-    },
-    "./batch": {
-      "types": "./dist/batch.d.ts",
-      "require": "./dist/batch.cjs",
-      "import": "./dist/batch.js"
-    },
-    "./concurrency": {
-      "types": "./dist/concurrency.d.ts",
-      "require": "./dist/concurrency.cjs",
-      "import": "./dist/concurrency.js"
-    },
-    "./throttle": {
-      "types": "./dist/throttle.d.ts",
-      "require": "./dist/throttle.cjs",
-      "import": "./dist/throttle.js"
-    },
-    "./semaphore": {
-      "types": "./dist/semaphore.d.ts",
-      "require": "./dist/semaphore.cjs",
-      "import": "./dist/semaphore.js"
-    },
-    "./lock": {
-      "types": "./dist/lock.d.ts",
-      "require": "./dist/lock.cjs",
-      "import": "./dist/lock.js"
-    }
   }
 }
