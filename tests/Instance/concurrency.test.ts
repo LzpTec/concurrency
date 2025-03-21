@@ -1,7 +1,7 @@
 // TODO
 import test from 'ava';
-import { Concurrency } from '../../src/concurrency';
-import { Chain } from '../../src/chain';
+import { Concurrency } from '../../src/concurrency.js';
+import { Chain } from '../../src/chain.js';
 
 const MAX_CONCURRENCY = 2;
 

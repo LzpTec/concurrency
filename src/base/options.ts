@@ -1,4 +1,4 @@
-import type { Input, Task } from './types';
+import type { Input, Task } from './types.js';
 
 export interface BatchCommonOptions {
     /**

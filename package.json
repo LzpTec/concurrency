@@ -4,6 +4,7 @@
   "description": "A Lightweight concurrency manager",
   "author": "André Posso <admin@lzptec.com>",
   "license": "MIT",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/LzpTec/concurrency.git"
@@ -17,9 +18,6 @@
     "backend",
     "frontend"
   ],
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
   "scripts": {
     "test": "ava",
     "build": "tsup",
@@ -43,43 +41,51 @@
   },
   "ava": {
     "timeout": "30s",
-    "extensions": [
-      "ts"
-    ],
-    "require": [
-      "ts-node/register"
+    "extensions": {
+      "ts": "module"
+    },
+    "nodeArguments": [
+      "--enable-source-maps",
+      "--import=@swc-node/register/esm-register"
     ]
   },
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "exports": {
     ".": {
-      "require": "./dist/index.js",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js"
     },
     "./batch": {
-      "require": "./dist/batch.js",
-      "import": "./dist/batch.mjs",
-      "types": "./dist/batch.d.ts"
+      "types": "./dist/batch.d.ts",
+      "require": "./dist/batch.cjs",
+      "import": "./dist/batch.js"
     },
     "./concurrency": {
-      "require": "./dist/concurrency.js",
-      "import": "./dist/concurrency.mjs",
-      "types": "./dist/concurrency.d.ts"
+      "types": "./dist/concurrency.d.ts",
+      "require": "./dist/concurrency.cjs",
+      "import": "./dist/concurrency.js"
     },
     "./throttle": {
-      "require": "./dist/throttle.js",
-      "import": "./dist/throttle.mjs",
-      "types": "./dist/throttle.d.ts"
+      "types": "./dist/throttle.d.ts",
+      "require": "./dist/throttle.cjs",
+      "import": "./dist/throttle.js"
     },
     "./semaphore": {
-      "require": "./dist/semaphore.js",
-      "import": "./dist/semaphore.mjs",
-      "types": "./dist/semaphore.d.ts"
+      "types": "./dist/semaphore.d.ts",
+      "require": "./dist/semaphore.cjs",
+      "import": "./dist/semaphore.js"
     },
     "./lock": {
-      "require": "./dist/lock.js",
-      "import": "./dist/lock.mjs",
-      "types": "./dist/lock.d.ts"
+      "types": "./dist/lock.d.ts",
+      "require": "./dist/lock.cjs",
+      "import": "./dist/lock.js"
     }
+  },
+  "dependencies": {
+    "@swc-node/register": "^1.10.10",
+    "@swc/core": "^1.11.11"
   }
 }

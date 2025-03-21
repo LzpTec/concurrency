@@ -1,7 +1,7 @@
 // TODO
 import test from 'ava';
-import { Throttle } from '../../src/throttle';
-import { Chain } from '../../src/chain';
+import { Throttle } from '../../src/throttle.js';
+import { Chain } from '../../src/chain.js';
 
 const MAX_CONCURRENCY = 2;
 const INTERVAL = 200;

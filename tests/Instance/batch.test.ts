@@ -1,7 +1,7 @@
 // TODO
 import test from 'ava';
-import { Batch } from '../../src/batch';
-import { Chain } from '../../src/chain';
+import { Batch } from '../../src/batch.js';
+import { Chain } from '../../src/chain.js';
 
 const BATCH_SIZE = 2;
 

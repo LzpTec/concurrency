@@ -1,4 +1,4 @@
-import type { Input, Task } from "./types";
+import type { Input, Task } from "./types.js";
 
 export const interrupt = Symbol(`Interrupt`);
 export const loop = Symbol(`loop`);

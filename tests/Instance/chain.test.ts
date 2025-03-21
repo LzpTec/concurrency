@@ -1,7 +1,7 @@
 // TODO
 import test from 'ava';
-import { Chain } from '../../src/chain';
-import { Batch } from '../../src/batch';
+import { Chain } from '../../src/chain.js';
+import { Batch } from '../../src/batch.js';
 
 async function wait(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));

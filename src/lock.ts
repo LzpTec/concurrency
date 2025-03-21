@@ -1,4 +1,4 @@
-import { Queue } from "./base/queue";
+import { Queue } from "./base/queue.js";
 
 export class Lock {
     #queue: Queue<Function> = new Queue();

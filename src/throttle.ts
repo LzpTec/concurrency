@@ -1,8 +1,9 @@
-import type { ThrottleCommonOptions, ThrottleTaskOptions, ThrottlePredicateOptions } from './base/options';
-import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared';
-import { SharedBase } from './base/shared-base';
-import { Group, Input, RunnableTask, Task } from './base/types';
-import { Semaphore, SemaphoreLock } from './semaphore';
+import type { ThrottleCommonOptions, ThrottleTaskOptions, ThrottlePredicateOptions } from './base/options.js';
+import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared.js';
+import { SharedBase } from './base/shared-base.js';
+import { Group, Input, RunnableTask, Task } from './base/types.js';
+import { Semaphore, SemaphoreLock } from './semaphore.js';
+
 function validateOptions(options: ThrottleCommonOptions) {
     if (!Number.isInteger(options.maxConcurrency)) {
         throw new Error('Parameter `maxConcurrency` must be a integer!');
@@ -15,7 +16,7 @@ function validateOptions(options: ThrottleCommonOptions) {
 
 export class Throttle extends SharedBase<ThrottleCommonOptions> {
 
-    #options: ThrottleCommonOptions;
+    #options: ThrottleCommonOptions = undefined!;
     #semaphore: Semaphore = new Semaphore();
     #promise = Promise.resolve();
     #locks: SemaphoreLock[] = [];

@@ -1,5 +1,5 @@
-import { every, filter, find, group, loop, map, mapSettled, some, validatePredicate, validateTask } from './shared';
-import type { Group, Input, RunnableTask, Task } from './types';
+import { every, filter, find, group, loop, map, mapSettled, some, validatePredicate, validateTask } from './shared.js';
+import type { Group, Input, RunnableTask, Task } from './types.js';
 
 export abstract class SharedBase<Options> {
 

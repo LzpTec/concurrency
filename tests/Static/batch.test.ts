@@ -1,6 +1,6 @@
 // TODO
 import test from 'ava';
-import { Batch } from '../../src/batch';
+import { Batch } from '../../src/batch.js';
 
 const BATCH_SIZE = 2;
 

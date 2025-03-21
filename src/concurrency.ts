@@ -1,8 +1,8 @@
-import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './base/options';
-import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared';
-import { SharedBase } from './base/shared-base';
-import type { Group, Input, RunnableTask, Task } from './base/types';
-import { Semaphore } from './semaphore';
+import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './base/options.js';
+import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared.js';
+import { SharedBase } from './base/shared-base.js';
+import type { Group, Input, RunnableTask, Task } from './base/types.js';
+import { Semaphore } from './semaphore.js';
 
 function validateOptions(options: ConcurrencyCommonOptions) {
     if (!Number.isInteger(options.maxConcurrency) || options.maxConcurrency < 0) {
@@ -22,7 +22,7 @@ function validateOptions(options: ConcurrencyCommonOptions) {
 
 export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
 
-    #options: ConcurrencyCommonOptions;
+    #options: ConcurrencyCommonOptions = undefined!;
     #semaphore: Semaphore = new Semaphore();
     #promise = Promise.resolve();
 

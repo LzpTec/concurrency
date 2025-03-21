@@ -1,7 +1,7 @@
-import { Batch } from "./batch";
-import { every, filter, find, group, loop, map, mapSettled, some, validatePredicate, validateTask } from "./base/shared";
-import { SharedBase } from "./base/shared-base";
-import { Group, Input, Task } from "./base/types";
+import { Batch } from "./batch.js";
+import { every, filter, find, group, loop, map, mapSettled, some, validatePredicate, validateTask } from "./base/shared.js";
+import { SharedBase } from "./base/shared-base.js";
+import { Group, Input, Task } from "./base/types.js";
 
 type Operation<A, B extends Input<A>, C> = (input: B, executor: SharedBase<any>) => Promise<Input<C>>;
 export type InputType<TValue> = TValue extends Input<infer TResult> ? TResult : never;

@@ -1,6 +1,6 @@
 // TODO
 import test from 'ava';
-import { Throttle } from '../../src/throttle';
+import { Throttle } from '../../src/throttle.js';
 
 const MAX_CONCURRENCY = 2;
 const INTERVAL = 500;

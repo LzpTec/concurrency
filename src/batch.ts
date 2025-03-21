@@ -1,8 +1,8 @@
-import type { BatchCommonOptions, BatchPredicateOptions, BatchTaskOptions } from './base/options';
-import { Queue } from './base/queue';
-import { SharedBase } from './base/shared-base';
-import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared';
-import type { Group, Input, RunnableTask, Task } from './base/types';
+import type { BatchCommonOptions, BatchPredicateOptions, BatchTaskOptions } from './base/options.js';
+import { Queue } from './base/queue.js';
+import { SharedBase } from './base/shared-base.js';
+import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared.js';
+import type { Group, Input, RunnableTask, Task } from './base/types.js';
 
 function validateOptions(options: BatchCommonOptions) {
     if (!Number.isInteger(options.batchSize) || options.batchSize < 0) {
@@ -22,7 +22,7 @@ function validateOptions(options: BatchCommonOptions) {
 
 export class Batch extends SharedBase<BatchCommonOptions> {
 
-    #options: BatchCommonOptions;
+    #options: BatchCommonOptions = undefined!;
     #isRunning: boolean = false;
     #queue: Queue<() => Promise<void>> = new Queue();
     #promise = Promise.resolve();

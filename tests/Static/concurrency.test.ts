@@ -1,5 +1,5 @@
 import test from 'ava';
-import { Concurrency } from '../../src/concurrency';
+import { Concurrency } from '../../src/concurrency.js';
 
 const MAX_CONCURRENCY = 2;
 
