@@ -1,9 +1,9 @@
 # TODO
 
 ## 4.X.X
-- [ ] Chain methods.
-- [ ] Run method.
-- [ ] Conversion to Workspaces to reduce devDependencies.
+- [x] Chain methods.
+- [x] Run method.
+- [x] Conversion to Workspaces to reduce devDependencies.
 
 ## 3.X.X
 - [ ] Update docs.
