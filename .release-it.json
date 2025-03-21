@@ -6,7 +6,6 @@
         "tagName": "v${version}"
     },
     "plugins": {
-        "release-it-pnpm": {},
         "@release-it/conventional-changelog": {
             "infile": "CHANGELOG.md",
             "preset": {
@@ -52,6 +51,14 @@
                         "type": "test",
                         "hidden": true
                     }
+                ]
+            }
+        },
+        "@release-it/bumper": {
+            "out": {
+                "file": "package.json",
+                "path": [
+                    "dependencies.@lzptec/concurrency"
                 ]
             }
         }

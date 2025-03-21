@@ -2,7 +2,6 @@
   "$schema": "https://unpkg.com/release-it@18/schema/release-it.json",
   "git": false,
   "plugins": {
-      "release-it-pnpm": {},
       "@release-it/conventional-changelog": {
           "infile": false,
           "preset": {

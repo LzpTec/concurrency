@@ -1,6 +1,6 @@
 {
   "name": "@lzptec/concurrency",
-  "version": "3.3.5",
+  "version": "4.0.0-alpha.2",
   "description": "A Lightweight concurrency manager",
   "author": "André Posso <admin@lzptec.com>",
   "license": "MIT",
@@ -21,10 +21,9 @@
   "scripts": {
     "test": "ava",
     "build": "tsup",
-    "prepublish": "pnpm run build",
-    "release": "pnpx release-it",
-    "release:alpha": "pnpx release-it --preRelease=alpha",
-    "release:rc": "pnpx release-it --preRelease=rc"
+    "release": "release-it",
+    "release:alpha": "release-it --preRelease=alpha",
+    "release:rc": "release-it --preRelease=rc"
   },
   "ava": {
     "timeout": "30s",
