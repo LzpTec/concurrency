@@ -10,6 +10,13 @@ type SharedFnReturn<A, B> = {
 
 type GroupKey = string | symbol;
 
+export function forEach<A>(task: Task<A, void>): SharedFnReturn<A, void> {
+    return {
+        task: async function (item: A) { await task(item) },
+        results: []
+    }
+}
+
 export function map<A, B>(task: Task<A, B>): SharedFnReturn<A, B> {
     const results: B[] = new Array();
     return {

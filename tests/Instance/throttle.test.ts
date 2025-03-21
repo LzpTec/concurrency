@@ -111,11 +111,11 @@ test('Chain', async t => {
         interval: INTERVAL
     });
 
-    const calls = await new Chain(test(), throttle)
+    const calls = await new Chain(test())
         .map(async (value) => {
             return value;
         })
-        .get();
+        .runWith(throttle);
 
     t.deepEqual(calls, [1, 2, 3, 4]);
     t.pass();

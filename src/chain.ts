@@ -10,19 +10,17 @@ type Overwrite<T, U> = Omit<T, keyof U> & U;
 
 export type SingleValueChain<TInput extends Input<any>, TValue = InputType<TInput>> = Overwrite<
     Chain<TInput, TValue>,
-    { get(): Promise<TValue> }
+    { runWith(runner: SharedBase<any>): Promise<TValue> }
 >
 
 export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> {
     #input: TInput;
     #operations: Operation<any, any, unknown>[] = [];
     #single = false;
-    #runner: SharedBase<any>;
 
-    constructor(input: TInput, runner: SharedBase<any>) {
+    constructor(input: TInput) {
         // @ts-ignore
         this.#input = input;
-        this.#runner = runner;
     }
 
     static #build<TData, TInput extends Input<TData>, TValue = InputType<TInput>>(
@@ -41,13 +39,21 @@ export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> {
         newOperation: Operation<TData, TInput, TValue>,
         single: boolean = false
     ): Chain<TValue[], TValue> | SingleValueChain<TValue[], TValue> {
-        const newChain = new Chain<TValue[], TValue>(chain.#input as any, chain.#runner);
+        const newChain = new Chain<TValue[], TValue>(chain.#input as any);
         newChain.#operations = [...chain.#operations, newOperation];
         newChain.#single = single;
 
         return newChain;
     };
 
+    /**
+     * Performs the specified `task` function on each element in the `input`, and returns an `Chain` that contains the results.
+     * 
+     * @template TValue Input Type.
+     * @template TNew Output Type.
+     * @param {Task<TValue, TNew>} task task to run.
+     * @returns {Chain<TNew[], TNew>}
+     */
     map<TNew>(task: Task<TValue, TNew>): Chain<TNew[], TNew> {
         validateTask(task);
 
@@ -59,6 +65,15 @@ export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> {
         });
     }
 
+    /**
+     * Performs the specified `task` function on each element in the `input`, 
+     * and returns an `Chain` that contains all of the tasks results as resolve or reject.
+     * 
+     * @template TValue Input Type.
+     * @template TNew Output Type.
+     * @param {Task<TValue, TNew>} task task to run.
+     * @returns {Chain<PromiseSettledResult<TNew>[], PromiseSettledResult<TNew>>}
+     */
     mapSettled<TNew>(task: Task<TValue, TNew>): Chain<PromiseSettledResult<TNew>[], PromiseSettledResult<TNew>> {
         validateTask(task);
 
@@ -70,6 +85,13 @@ export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> {
         });
     }
 
+    /**
+     * Returns an `Chain` that contains the elements that meet the condition specified in the `predicate` function.
+     *
+     * @template TValue Input Type.
+     * @param {Task<TValue, boolean>} predicate predicate to run.
+     * @returns {Chain<TValue[], TValue>}
+     */
     filter(predicate: Task<TValue, boolean>): Chain<TValue[], TValue> {
         validatePredicate(predicate);
 
@@ -81,6 +103,13 @@ export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> {
         });
     }
 
+    /**
+     * Returns an `Chain` that contains whether the specified `predicate` function returns true for any element of `input`.
+     *
+     * @template TValue Input Type.
+     * @param {Task<TValue, boolean>} predicate predicate to run.
+     * @returns {SingleValueChain<boolean[], boolean>}
+     */
     some(predicate: Task<TValue, boolean>): SingleValueChain<boolean[], boolean> {
         validatePredicate(predicate);
 
@@ -92,6 +121,13 @@ export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> {
         }, true);
     }
 
+    /**
+     * Returns the `input` value of the first `predicate` that resolves to true, and undefined otherwise.
+     *
+     * @template TValue Input Type.
+     * @param {Task<TValue, boolean>} predicate predicate to run.
+     * @returns {SingleValueChain<boolean[], TValue | undefined>}
+     */
     find(predicate: Task<TValue, boolean>): SingleValueChain<TValue[], TValue | undefined> {
         validatePredicate(predicate);
 
@@ -103,6 +139,13 @@ export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> {
         }, true);
     }
 
+    /**
+     * Determines whether all the elements of `input` satisfy the specified `predicate`.
+     *
+     * @template TValue Input Type.
+     * @param {Task<TValue, boolean>} predicate predicate to run.
+     * @returns {SingleValueChain<boolean[], TValue | undefined>}
+     */
     every(predicate: Task<TValue, boolean>): SingleValueChain<boolean[], boolean> {
         validatePredicate(predicate);
 
@@ -114,6 +157,16 @@ export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> {
         }, true);
     }
 
+    /**
+     * This method groups the elements of the `input` according to the string or symbol values returned by a provided `task`.
+     * 
+     * The returned object has separate properties for each group, containing arrays with the elements in the group.
+     * 
+     * @template TValue Input Type.
+     * @template TNew Output Type.
+     * @param {Task<TValue, string | symbol>} task task to run.
+     * @returns {Chain<Group<TValue>[], Group<TValue>>}
+     */
     group(task: Task<TValue, string | symbol>): Chain<Group<TValue>[], Group<TValue>> {
         validateTask(task);
         return Chain.#build(this, async (input: Input<TValue>, executor: SharedBase<any>) => {
@@ -124,11 +177,11 @@ export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> {
         });
     }
 
-    async get<TResult = TValue[]>(): Promise<TResult> {
+    async runWith<TResult = TValue[]>(runner: SharedBase<any>): Promise<TResult> {
         const res = await (async () => {
             let input: any = this.#input;
             for (const operation of this.#operations) {
-                input = await operation(input, this.#runner);
+                input = await operation(input, runner);
             }
 
             return this.#single ? input[0] : input;
@@ -142,10 +195,11 @@ export class Chain<TInput extends Input<any>, TValue = InputType<TInput>> {
 (async () => {
     const data = [1, 2, 3, 40, 50];
 
-    const result = await new Chain(data, new Batch({ batchSize: 2 }))
+    const result = await new Chain(data)
         .filter(x => x < 10)
         .map(x => x.toString())
-        .find(x => x === '3');
+        .find(x => x === '3')
+        .runWith(new Batch({ batchSize: 2 }));
 
     console.log(result);
 });

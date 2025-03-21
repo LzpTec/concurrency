@@ -1,7 +1,7 @@
 import type { BatchCommonOptions, BatchPredicateOptions, BatchTaskOptions } from './base/options.js';
 import { Queue } from './base/queue.js';
 import { SharedBase } from './base/shared-base.js';
-import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared.js';
+import { every, filter, find, forEach, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared.js';
 import type { Group, Input, RunnableTask, Task } from './base/types.js';
 
 function validateOptions(options: BatchCommonOptions) {
@@ -69,7 +69,14 @@ export class Batch extends SharedBase<BatchCommonOptions> {
      */
     static async forEach<A>(taskOptions: BatchTaskOptions<A, any>): Promise<void> {
         validateTask(taskOptions.task);
-        return this.#loop(taskOptions);
+
+        const { task } = forEach(taskOptions.task);
+
+        await this.
+            #loop({
+                ...taskOptions,
+                task
+            });
     }
 
     /**

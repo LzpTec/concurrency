@@ -1,5 +1,5 @@
 import type { ConcurrencyCommonOptions, ConcurrencyPredicateOptions, ConcurrencyTaskOptions } from './base/options.js';
-import { every, filter, find, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared.js';
+import { every, filter, find, forEach, group, interrupt, loop, map, mapSettled, some, validateAndProcessInput, validatePredicate, validateTask } from './base/shared.js';
 import { SharedBase } from './base/shared-base.js';
 import type { Group, Input, RunnableTask, Task } from './base/types.js';
 import { Semaphore } from './semaphore.js';
@@ -76,7 +76,13 @@ export class Concurrency extends SharedBase<ConcurrencyCommonOptions> {
      */
     static async forEach<A>(taskOptions: ConcurrencyTaskOptions<A, any>): Promise<void> {
         validateTask(taskOptions.task);
-        return this.#loop(taskOptions);
+        const { task } = forEach(taskOptions.task);
+
+        await this.
+            #loop({
+                ...taskOptions,
+                task
+            });
     }
 
     /**

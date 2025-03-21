@@ -121,12 +121,12 @@ test('Chain', async t => {
         maxConcurrency: MAX_CONCURRENCY
     });
 
-    const calls = await new Chain(test(), concurrency)
+    const calls = await new Chain(test())
         .map(async (value) => {
             await wait(value * 10);
             return value;
         })
-        .get();
+        .runWith(concurrency);
 
     t.deepEqual(calls, [1, 2, 3, 4]);
     t.pass();

@@ -121,12 +121,12 @@ test('Chain', async t => {
         batchSize: BATCH_SIZE
     });
 
-    const calls = await new Chain(test(), batch)
+    const calls = await new Chain(test())
         .map(async (value) => {
             await wait(value * 10);
             return value;
         })
-        .get();
+        .runWith(batch);
 
     t.deepEqual(calls, [1, 2, 3, 4]);
     t.pass();
