@@ -22,12 +22,9 @@
     "test": "ava",
     "build": "tsup",
     "prepublish": "pnpm run build",
-    "release": "commit-and-tag-version",
-    "release:major": "commit-and-tag-version --release-as major",
-    "release:minor": "commit-and-tag-version --release-as minor",
-    "release:patch": "commit-and-tag-version --release-as patch",
-    "release:alpha": "commit-and-tag-version --prerelease alpha",
-    "release:rc": "commit-and-tag-version --prerelease rc"
+    "release": "pnpx release-it",
+    "release:alpha": "pnpx release-it --preRelease=alpha",
+    "release:rc": "pnpx release-it --preRelease=rc"
   },
   "ava": {
     "timeout": "30s",

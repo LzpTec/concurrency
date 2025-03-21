@@ -12,9 +12,7 @@
     "build": "pnpm run -r build",
     "prepublish": "pnpm run build",
     "release": "pnpm run -r release",
-    "release:major": "pnpm run -r release:major",
-    "release:minor": "pnpm run -r release:minor",
-    "release:patch": "pnpm run -r release:patch",
+    "release:alpha": "pnpm run -r release:alpha",
     "release:rc": "pnpm run -r release:rc"
   },
   "devDependencies": {
