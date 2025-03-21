@@ -1,6 +1,6 @@
 {
   "name": "root",
-  "version": "3.3.5",
+  "version": "4.0.0-alpha.0",
   "type": "module",
   "private": true,
   "workspaces": [
@@ -29,6 +29,6 @@
     "typescript": "5.8.2"
   },
   "dependencies": {
-    "@lzptec/concurrency": "4.0.0-alpha.2"
+    "@lzptec/concurrency": "4.0.0-alpha.0"
   }
 }

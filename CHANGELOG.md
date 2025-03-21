@@ -1,5 +1,36 @@
 # Changelog
 
+## [4.0.0-alpha.0](https://github.com/LzpTec/concurrency/compare/v3.3.5...v4.0.0-alpha.0) (2025-03-21)
+
+### ⚠ BREAKING CHANGES
+
+* Change to monorepo to reduce devDependencies.
+
+### Features
+
+* add aquired property to semaphore. ([ca82f7a](https://github.com/LzpTec/concurrency/commit/ca82f7a0a5ac2efc9f44a0fd9b8bd20b7e37b7ec))
+* Change chain implementation. ([f1b38d7](https://github.com/LzpTec/concurrency/commit/f1b38d725037ec23159baf1825b16665a6b2edc7))
+* Change chain implementation. ([c962628](https://github.com/LzpTec/concurrency/commit/c9626288920a9e7de31cceeab010be4fc80b30af))
+* Change to monorepo to reduce devDependencies. ([d28d139](https://github.com/LzpTec/concurrency/commit/d28d1394bfdab0cb0b745d66870d68a541c898ed))
+* Convert to ESM. ([1880a1a](https://github.com/LzpTec/concurrency/commit/1880a1aa955db2dfe9feb80312145be6c84f2d40))
+* Initial chain implementation. ([fc0ee48](https://github.com/LzpTec/concurrency/commit/fc0ee48c6e6621ca7feee977faa5a096795765f1))
+* Removido pnpm. ([f13574c](https://github.com/LzpTec/concurrency/commit/f13574c254f723daa7505a8416f6b4f3264004a6))
+
+### Refactor
+
+* Change internal struct in preparation for chainable methods. ([e00bff4](https://github.com/LzpTec/concurrency/commit/e00bff43ffb21728a47aed8bea0920ccb2a2dfc9))
+* Change internal struct. ([e04d54c](https://github.com/LzpTec/concurrency/commit/e04d54cec25d08c45835d9210d12cc1c4c0a860d))
+* Create Group type. ([f5bfe4d](https://github.com/LzpTec/concurrency/commit/f5bfe4d7b3bc064beb4cb6c6098702ae68f7804a))
+* Implement queue clear method. ([2ceb351](https://github.com/LzpTec/concurrency/commit/2ceb3511319c00e3591f120856604f8cbd2d2e24))
+
+### Docs
+
+* Update TODO for version 4. ([69a5200](https://github.com/LzpTec/concurrency/commit/69a52003770355c4e7025178ed84c5f6e1077a3f))
+
+### Dependencies
+
+* Update deps. ([2ac1905](https://github.com/LzpTec/concurrency/commit/2ac19058a99c24d82c06849b51ab19dd221a2eef))
+
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
 ## [3.3.5](https://github.com/LzpTec/concurrency/compare/v3.3.4...v3.3.5) (2024-07-12)
