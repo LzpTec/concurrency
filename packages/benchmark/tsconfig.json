@@ -1,31 +1,13 @@
 {
-    "compileOnSave": false,
+    "extends": "../../tsconfig.json",
     "compilerOptions": {
-        "declaration": true,
-        "experimentalDecorators": false,
-        "emitDecoratorMetadata": false,
-        "target": "ES2018",
-        "module": "CommonJS",
-        "moduleResolution": "node",
-        "outDir": "./dist",
-        "sourceMap": true,
-        "strict": true,
-        "strictPropertyInitialization": false,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "noImplicitReturns": true,
-        "noFallthroughCasesInSwitch": true,
-        "esModuleInterop": true,
-        "importHelpers": false,
         "typeRoots": [
+            "../../node_modules/@types",
             "node_modules/@types"
         ],
-        "lib": [
-            "ES2022"
-        ]
     },
     "include": [
-        "**/*.ts"
+        "src/**/*"
     ],
     "exclude": [
         "node_modules",
