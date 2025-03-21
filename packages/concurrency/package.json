@@ -1,6 +1,6 @@
 {
   "name": "@lzptec/concurrency",
-  "version": "4.0.0-alpha.3",
+  "version": "4.0.0",
   "description": "A Lightweight concurrency manager",
   "author": "André Posso <admin@lzptec.com>",
   "license": "MIT",

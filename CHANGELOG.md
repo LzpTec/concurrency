@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.0.0](https://github.com/LzpTec/concurrency/compare/v4.0.0-alpha.0...v4.0.0) (2025-03-21)
+
+### Bug Fixes
+
+* release-it. ([df91c6e](https://github.com/LzpTec/concurrency/commit/df91c6e93c50581c7b26c4610d61c674be8d5b01))
+
 ## [4.0.0-alpha.0](https://github.com/LzpTec/concurrency/compare/v3.3.5...v4.0.0-alpha.0) (2025-03-21)
 
 ### ⚠ BREAKING CHANGES
